@@ -1,13 +1,14 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "backend for virtual assistant",
   "main": "index.js",
+   "type": "module",
   "scripts": {
     "dev": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
+  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
