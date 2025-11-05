@@ -22,6 +22,7 @@ try {
   let result=await axios.post(`${serverUrl}/api/auth/signup`,{
     name,email,password
   },{withCredentials:true} )
+  console.log(result)
  setUserData(result.data)
   setLoading(false)
   navigate("/customize")
