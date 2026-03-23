@@ -45,7 +45,7 @@ now your userInput- ${command}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": "AIzaSyBaD9fDFe9bLttHzlpmxftbClUdwpNJ3zs",
+          "x-goog-api-key": "AIzaSyDQ3V9k5tXUSm7wgNnrlNQEz2iisrlxPYQ",
         },
         body: JSON.stringify({
           contents: [
