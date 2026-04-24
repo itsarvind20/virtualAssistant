@@ -7,7 +7,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import userRouter from "./routes/user.routes.js"
 import geminiResponse from "./gemini.js"
-
+import grokResponse from "./grok.js";
 
 
 const app = express()
@@ -25,3 +25,24 @@ app.listen(port,()=>{
     connectDb()
     console.log("server started")
 })
+
+app.post("/ai", async (req, res) => {
+  try {
+    const { prompt, model } = req.body;
+
+    let response;
+
+    if (model === "grok") {
+      response = await grokResponse(prompt);
+    } else {
+      // default → Gemini
+      response = await geminiResponse(prompt);
+    }
+
+    res.json({ success: true, response });
+
+  } catch (error) {
+    console.error("AI Route Error:", error.message);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
