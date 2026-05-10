@@ -1,48 +1,143 @@
-import express from "express"
-import dotenv from "dotenv"
-dotenv.config()
-import connectDb from "./config/db.js"
-import authRouter from "./routes/auth.routes.js"
-import cors from "cors"
-import cookieParser from "cookie-parser"
-import userRouter from "./routes/user.routes.js"
-import geminiResponse from "./gemini.js"
-import grokResponse from "./grok.js";
+import express from "express";
+import dotenv from "dotenv";
+dotenv.config();
+
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { exec } from "child_process";
+import open from "open";
+
+import connectDb from "./config/db.js";
+import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
+import playYouTubeVideo from "./functions/youtubePlayer.js";
+import groqResponse from "./groq.js"
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 
-const app = express()
-const port = process.env.PORT || 3000
+// =========================
+// MIDDLEWARE
+// =========================
+
 app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true
-}))
-app.use(express.json())
-app.use(cookieParser())
-app.use("/api/auth",authRouter)
-app.use("/api/user",userRouter)
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 
-app.listen(port,()=>{
-    connectDb()
-    console.log("server started")
-})
+app.use(express.json());
+app.use(cookieParser());
+
+
+// =========================
+// ROUTES
+// =========================
+
+app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
+
+
+
+// =========================
+
+// =========================
+// AI ROUTE
+// =========================
 
 app.post("/ai", async (req, res) => {
-  try {
-    const { prompt, model } = req.body;
 
-    let response;
+    try {
 
-    if (model === "grok") {
-      response = await grokResponse(prompt);
-    } else {
-      // default → Gemini
-      response = await geminiResponse(prompt);
+        const { prompt, model } = req.body;
+
+        if (!prompt) {
+
+            return res.status(400).json({
+                success: false,
+                message: "Prompt is required"
+            });
+        }
+
+
+        // FIRST CHECK DESKTOP COMMANDS
+        const desktopResponse = await executeDesktopCommand(prompt);
+
+
+        // IF COMMAND FOUND
+        if (desktopResponse) {
+
+            return res.json({
+                success: true,
+                response: desktopResponse
+            });
+        }
+
+
+        // OTHERWISE USE AI
+        let response;
+        
+        response = await groqResponse(prompt);
+
+        return res.json({
+            success: true,
+            response
+        });
+
+    } catch (error) {
+
+        console.error("AI Route Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+});
+
+app.post("/send-mail", async (req, res) => {
+
+    const {
+        to,
+        subject,
+        message
+    } = req.body;
+
+    const success = await sendMail(
+
+        to,
+        subject,
+        message
+    );
+
+    if (success) {
+
+        return res.json({
+
+            success: true
+        });
     }
 
-    res.json({ success: true, response });
+    return res.json({
 
-  } catch (error) {
-    console.error("AI Route Error:", error.message);
-    res.status(500).json({ success: false, message: "Server Error" });
-  }
+        success: false
+    });
+});
+
+// =========================
+// SERVER START
+// =========================
+
+app.listen(port, async () => {
+
+    try {
+
+        await connectDb();
+
+        console.log(`Server started on port ${port}`);
+
+    } catch (error) {
+
+        console.log("Database Connection Error:", error);
+    }
 });
