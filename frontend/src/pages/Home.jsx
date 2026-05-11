@@ -250,10 +250,7 @@ function Home() {
     // YOUTUBE
     // =====================================
 
-    if (
-      type === "youtube-search" ||
-      type === "youtube-play"
-    ) {
+    if (type === "youtube-search") {
 
       window.open(
 
