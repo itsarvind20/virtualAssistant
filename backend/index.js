@@ -10,7 +10,6 @@ import open from "open";
 import connectDb from "./config/db.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
-import playYouTubeVideo from "./functions/youtubePlayer.js";
 import groqResponse from "./groq.js"
 
 const app = express();
@@ -95,34 +94,6 @@ app.post("/ai", async (req, res) => {
     }
 });
 
-app.post("/send-mail", async (req, res) => {
-
-    const {
-        to,
-        subject,
-        message
-    } = req.body;
-
-    const success = await sendMail(
-
-        to,
-        subject,
-        message
-    );
-
-    if (success) {
-
-        return res.json({
-
-            success: true
-        });
-    }
-
-    return res.json({
-
-        success: false
-    });
-});
 
 // =========================
 // SERVER START

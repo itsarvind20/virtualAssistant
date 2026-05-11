@@ -1,5 +1,6 @@
 import open from "open";
 import { exec } from "child_process";
+import playYouTubeVideo from "./functions/youtubePlayer.js";
 
 const executeCommand = async (type, userInput) => {
 
@@ -40,6 +41,19 @@ const executeCommand = async (type, userInput) => {
                 await open(
                     `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`
                 );
+
+                break;
+
+
+            // =========================
+            // YOUTUBE MUSIC PLAYER
+            // =========================
+
+            case "youtube-play":
+
+            case "play-music":
+
+                await playYouTubeVideo(userInput);
 
                 break;
 
@@ -109,7 +123,10 @@ const executeCommand = async (type, userInput) => {
 
                 break;
 
-
+            // case "play-music":
+            //     await playMusic(
+            //                    aiResult.userInput
+            //                 );
             default:
 
                 console.log("No executable command");

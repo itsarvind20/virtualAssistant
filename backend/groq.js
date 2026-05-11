@@ -41,6 +41,10 @@ Rules:
 - Remove assistant name from userInput.
 - For Google/YouTube search,
   keep ONLY search query in userInput.
+- For song or music requests like "play perfect",
+  set type to "play-music" and keep only the song/artist in userInput.
+- For "play on YouTube" or "play on YouTube Music",
+  use type "play-music".
 - Keep response short and natural.
 - If asked "who created you",
   mention ${userName}.

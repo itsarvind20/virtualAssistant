@@ -19,45 +19,43 @@ const playYouTubeVideo = async (songName) => {
 
         const page = await browser.newPage();
 
-        // Open YouTube search
+        const query = `${songName} official audio`;
+
+        // Open YouTube Music search
         await page.goto(
-            `https://www.youtube.com/results?search_query=${encodeURIComponent(songName)}`,
+            `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
             {
-                waitUntil: "domcontentloaded"
+                waitUntil: "networkidle2"
             }
         );
 
         console.log(`Searching for ${songName}...`);
 
-        // Wait for videos to load
-        await page.waitForSelector("a#video-title", {
+        // Wait for YouTube Music results to load
+        await page.waitForSelector("a[href*='watch']", {
             timeout: 15000
         });
 
-        // Get all video links
-        const videos = await page.$$("a#video-title");
+        const songs = await page.$$("a[href*='watch']");
 
-        // Click first video
-        if (videos.length > 0) {
+        if (songs.length > 0) {
 
-            await videos[0].click();
+            await Promise.all([
+                page.waitForNavigation({
+                    waitUntil: "networkidle2",
+                    timeout: 15000
+                }).catch(() => null),
+                songs[0].click()
+            ]);
 
-            console.log("First video clicked");
+            console.log("First YouTube Music result clicked");
 
         } else {
 
-            console.log("No videos found");
+            console.log("No songs found");
         }
 
-        // Wait for video page
-        await page.waitForNavigation({
-            waitUntil: "networkidle2"
-        });
-
         console.log(`Playing ${songName}`);
-
-        // OPTIONAL FULLSCREEN
-        await page.keyboard.press("f");
 
     } catch (error) {
 
