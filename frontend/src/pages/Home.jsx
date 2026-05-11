@@ -1,806 +1,504 @@
-import React, {
-  useContext,
-  useEffect,
-  useRef,
-  useState
-} from "react";
-
-import { userDataContext } from "../context/UserContext";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
-import aiImg from "../assets/ai.gif";
-import userImg from "../assets/user.gif";
+import { LogOut, Mic, Music2, Send, Settings } from "lucide-react";
+import { userDataContext } from "../context/UserContext";
 
 function Home() {
-
-  const {
-    userData,
-    serverUrl,
-    setUserData,
-    getGeminiResponse
-  } = useContext(userDataContext);
+  const { userData, serverUrl, setUserData, getGeminiResponse } =
+    useContext(userDataContext);
 
   const navigate = useNavigate();
-
-
-
-  // =========================================
-  // STATES
-  // =========================================
-
-  const [listening, setListening] =
-    useState(false);
-
-  const [aiText, setAiText] =
-    useState("");
-
-
-
-  // =========================================
-  // EMAIL STATES
-  // =========================================
-
-  const [emailMode, setEmailMode] =
-    useState(false);
-
-  const [emailStep, setEmailStep] =
-    useState("");
-
-  const [emailData, setEmailData] =
-    useState({
-
-      to: "",
-
-      subject: "",
-
-      message: ""
-    });
-
-
-
-  // =========================================
-  // REFS
-  // =========================================
-
-  const recognitionRef = useRef(null);
-
-  const isSpeakingRef = useRef(false);
-
-  const isRecognitionActiveRef =
-    useRef(false);
-
   const synth = window.speechSynthesis;
 
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: `Hi ${userData?.name || "there"}! I'm ${
+        userData?.assistantName || "your assistant"
+      }. You can type or say my name to talk to me.`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
 
+  const recognitionRef = useRef(null);
+  const isSpeakingRef = useRef(false);
+  const isRecognitionActiveRef = useRef(false);
+  const historyRef = useRef([]);
+  const endRef = useRef(null);
 
-  // =========================================
-  // LOGOUT
-  // =========================================
+  const assistantName = userData?.assistantName || "Assistant";
+  const userName = userData?.name || "there";
+  const latestAssistantMessage =
+    [...messages].reverse().find((message) => message.role === "assistant")
+      ?.content || "";
 
-  const handleLogOut = async () => {
+  const buildSystemPrompt = () =>
+    `
+You are ${assistantName}, a helpful voice and chat assistant.
 
+User profile:
+- Name: ${userData?.name || "Unknown"}
+- Email: ${userData?.email || "Unknown"}
+
+Rules:
+- Reply in short, natural sentences because responses may be spoken aloud.
+- Remember the conversation history and refer back when useful.
+- If the user asks for an app, website, search, YouTube, date, or time action, classify it with the right action type.
+- For music, use YouTube Music when the user says YouTube Music.
+- ${
+      spotifyConnected
+        ? "For music, use Spotify by default because Spotify is connected."
+        : "For music, use YouTube Music by default unless the user says Spotify."
+    }
+- If you do not know something, say so honestly.
+`.trim();
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const addMessage = (role, content) => {
+    setMessages((prev) => [...prev, { role, content }]);
+  };
+
+  const stopRecognition = () => {
     try {
-
-      await axios.get(
-
-        `${serverUrl}/api/auth/logout`,
-
-        {
-          withCredentials: true
-        }
-      );
-
-      setUserData(null);
-
-      navigate("/signin");
-
-    } catch (error) {
-
-      console.log(error);
-
-      setUserData(null);
+      recognitionRef.current?.stop();
+      isRecognitionActiveRef.current = false;
+    } catch {
+      // Browser speech recognition can throw when it is already stopped.
     }
   };
 
+  const startRecognition = () => {
+    if (!recognitionRef.current || isRecognitionActiveRef.current) return;
 
-
-  // =========================================
-  // SPEAK FUNCTION
-  // =========================================
+    try {
+      recognitionRef.current.start();
+      isRecognitionActiveRef.current = true;
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const speak = (text) => {
-
     if (!text) return;
 
     synth.cancel();
 
-    const utterance =
-      new SpeechSynthesisUtterance(text);
-
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-IN";
-
     utterance.rate = 1;
-
     utterance.pitch = 1;
 
-    utterance.volume = 1;
-
     isSpeakingRef.current = true;
-
-    utterance.onstart = () => {
-
-      try {
-
-        recognitionRef.current?.stop();
-
-      } catch {}
-    };
-
+    utterance.onstart = stopRecognition;
     utterance.onend = () => {
-
       isSpeakingRef.current = false;
-
-      setTimeout(() => {
-
-        startRecognition();
-
-      }, 500);
+      setTimeout(startRecognition, 600);
     };
 
     synth.speak(utterance);
   };
 
+  const cleanMusicQuery = (text = "") =>
+    text
+      .replace(new RegExp(`\\b${assistantName}\\b`, "gi"), "")
+      .replace(/\b(on|in)\s+spotify\b/gi, "")
+      .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
+      .replace(/\bplay\b/gi, "")
+      .replace(/\bsong\b/gi, "")
+      .trim();
 
-
-  // =========================================
-  // START RECOGNITION
-  // =========================================
-
-  const startRecognition = () => {
-
-    if (
-      !recognitionRef.current ||
-      isRecognitionActiveRef.current
-    ) return;
-
+  const connectSpotify = async () => {
     try {
+      const result = await axios.get(`${serverUrl}/api/spotify/login`, {
+        withCredentials: true,
+      });
 
-      recognitionRef.current.start();
-
-      isRecognitionActiveRef.current = true;
-
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+      }
     } catch (error) {
-
       console.log(error);
+      speak("Spotify login failed. Check your Spotify setup.");
     }
   };
 
+  const playOnSpotify = async (song) => {
+    const query = cleanMusicQuery(song);
 
-
-  // =========================================
-  // STOP RECOGNITION
-  // =========================================
-
-  const stopRecognition = () => {
+    if (!query) {
+      return "Tell me which song you want me to play on Spotify.";
+    }
 
     try {
+      const result = await axios.post(
+        `${serverUrl}/api/spotify/play`,
+        { query },
+        { withCredentials: true }
+      );
 
-      recognitionRef.current?.stop();
+      return result.data?.message || "Playing on Spotify.";
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        "Spotify playback failed. Connect Spotify and open it on a device first.";
 
-      isRecognitionActiveRef.current = false;
+      if (error.response?.status !== 403) {
+        window.open(
+          `https://open.spotify.com/search/${encodeURIComponent(query)}`,
+          "_blank"
+        );
+      }
 
-    } catch {}
+      return message;
+    }
   };
 
-
-
-  // =========================================
-  // HANDLE COMMANDS
-  // =========================================
-
-  const handleCommand = (data) => {
-
-    const {
-      type,
-      userInput,
-      response
-    } = data;
-
-    setAiText(response);
-
-    speak(response);
-
-
-
-    // =====================================
-    // EMAIL MODE
-    // =====================================
-
-    if (type === "send-email") {
-
-      setEmailMode(true);
-
-      setEmailStep("to");
-
-      speak("Tell me recipient email");
-
-      return;
-    }
-
-
-
-    // =====================================
-    // GOOGLE SEARCH
-    // =====================================
+  const runBrowserAction = async ({ type, userInput }, originalMessage = "") => {
+    const actionInput = userInput || originalMessage;
+    const encodedInput = encodeURIComponent(actionInput || "");
 
     if (type === "google-search") {
+      window.open(`https://www.google.com/search?q=${encodedInput}`, "_blank");
+    }
 
+    if (type === "youtube-search" || type === "youtube-play") {
       window.open(
-
-        `https://www.google.com/search?q=${encodeURIComponent(userInput)}`,
-
+        `https://www.youtube.com/results?search_query=${encodedInput}`,
         "_blank"
       );
     }
 
+    if (type === "play-music" && spotifyConnected) {
+      return playOnSpotify(actionInput);
+    }
 
-
-    // =====================================
-    // YOUTUBE
-    // =====================================
-
-    if (
-      type === "youtube-search" ||
-      type === "youtube-play"
-    ) {
-
+    if (type === "play-music" || type === "youtube-music-play") {
       window.open(
-
-        `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`,
-
+        `https://music.youtube.com/search?q=${encodedInput}`,
         "_blank"
       );
     }
 
+    if (type === "spotify-play") {
+      return playOnSpotify(actionInput);
+    }
 
-
-    // =====================================
-    // CALCULATOR
-    // =====================================
+    if (type === "open-youtube") {
+      window.open("https://www.youtube.com", "_blank");
+    }
 
     if (type === "calculator-open") {
-
-      window.open(
-
-        `https://www.google.com/search?q=calculator`,
-
-        "_blank"
-      );
+      window.open("https://www.google.com/search?q=calculator", "_blank");
     }
-
-
-
-    // =====================================
-    // INSTAGRAM
-    // =====================================
 
     if (type === "instagram-open") {
-
-      window.open(
-
-        `https://instagram.com`,
-
-        "_blank"
-      );
+      window.open("https://www.instagram.com", "_blank");
     }
-
-
-
-    // =====================================
-    // FACEBOOK
-    // =====================================
 
     if (type === "facebook-open") {
-
-      window.open(
-
-        `https://facebook.com`,
-
-        "_blank"
-      );
+      window.open("https://www.facebook.com", "_blank");
     }
-
-
-
-    // =====================================
-    // WEATHER
-    // =====================================
 
     if (type === "weather-show") {
+      window.open("https://www.google.com/search?q=weather", "_blank");
+    }
 
-      window.open(
+    return "";
+  };
 
-        `https://www.google.com/search?q=weather`,
+  const askAssistant = async (message) => {
+    const previousHistory = historyRef.current.slice(-20);
+    const nextHistory = [
+      ...previousHistory,
+      { role: "user", content: message },
+    ].slice(-20);
 
-        "_blank"
-      );
+    const data = await getGeminiResponse(
+      message,
+      previousHistory,
+      buildSystemPrompt()
+    );
+
+    const response =
+      data?.response || "Sorry, I could not understand that properly.";
+
+    historyRef.current = [
+      ...nextHistory,
+      { role: "assistant", content: response },
+    ].slice(-20);
+
+    const actionMessage = await runBrowserAction(data || {}, message);
+
+    if (actionMessage) {
+      historyRef.current = [
+        ...nextHistory,
+        { role: "assistant", content: actionMessage },
+      ].slice(-20);
+
+      return actionMessage;
+    }
+
+    return response;
+  };
+
+  const sendMessage = async (text = input) => {
+    const message = text.trim();
+    if (!message || loading) return;
+
+    addMessage("user", message);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const response = await askAssistant(message);
+      addMessage("assistant", response);
+      speak(response);
+    } catch (error) {
+      console.log(error);
+      addMessage("assistant", "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleVoiceCommand = async (text) => {
+    const wakeWord = assistantName.toLowerCase();
 
+    if (!text.includes(wakeWord)) {
+      if (text.includes("open google")) {
+        window.open("https://www.google.com", "_blank");
+        speak("Opening Google.");
+      }
 
-  // =========================================
-  // CLEAN COMMAND
-  // =========================================
+      if (text.includes("open youtube")) {
+        window.open("https://www.youtube.com", "_blank");
+        speak("Opening YouTube.");
+      }
 
-  const cleanCommand = (text) => {
-
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s@.]/gi, "")
-      .trim();
-  };
-
-
-
-  // =========================================
-  // USE EFFECT
-  // =========================================
-
-  useEffect(() => {
-
-    const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-
-      alert("Please use Google Chrome");
+      if (text.startsWith("play ")) {
+        await sendMessage(text);
+      }
 
       return;
     }
 
+    const command = text.replace(wakeWord, "").trim();
 
+    if (!command) {
+      speak(`Yes, ${userName}?`);
+      return;
+    }
 
-    // =====================================
-    // CREATE RECOGNITION
-    // =====================================
+    await sendMessage(command);
+  };
 
-    const recognition =
-      new SpeechRecognition();
+  const handleLogOut = async () => {
+    try {
+      await axios.get(`${serverUrl}/api/auth/logout`, {
+        withCredentials: true,
+      });
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setUserData(null);
+      navigate("/signin");
+    }
+  };
 
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
     recognition.continuous = true;
-
-    recognition.interimResults = true;
-
+    recognition.interimResults = false;
     recognition.lang = "en-IN";
 
-    recognition.maxAlternatives = 3;
-
-    recognitionRef.current =
-      recognition;
-
-
-
-    // =====================================
-    // START AFTER USER CLICK
-    // =====================================
-
-    const startOnce = () => {
-
-      startRecognition();
-
-      document.removeEventListener(
-        "click",
-        startOnce
-      );
-    };
-
-    document.addEventListener(
-      "click",
-      startOnce
-    );
-
-
-
-    // =====================================
-    // ON START
-    // =====================================
-
     recognition.onstart = () => {
-
       setListening(true);
-
       isRecognitionActiveRef.current = true;
     };
 
-
-
-    // =====================================
-    // ON END
-    // =====================================
-
     recognition.onend = () => {
-
       setListening(false);
-
       isRecognitionActiveRef.current = false;
 
       if (!isSpeakingRef.current) {
-
-        setTimeout(() => {
-
-          startRecognition();
-
-        }, 1000);
+        setTimeout(startRecognition, 900);
       }
     };
 
-
-
-    // =====================================
-    // ON ERROR
-    // =====================================
-
-    recognition.onerror = (event) => {
-
-      console.log(event.error);
-
+    recognition.onerror = () => {
       setListening(false);
-
       isRecognitionActiveRef.current = false;
 
       if (!isSpeakingRef.current) {
-
-        setTimeout(() => {
-
-          startRecognition();
-
-        }, 1500);
+        setTimeout(startRecognition, 1200);
       }
     };
 
-
-
-    // =====================================
-    // ON RESULT
-    // =====================================
-
-    recognition.onresult = async (
-      event
-    ) => {
-
-      let finalTranscript = "";
-
-      for (
-        let i = event.resultIndex;
-        i < event.results.length;
-        i++
-      ) {
-
-        const transcript =
-          event.results[i][0].transcript;
-
-        if (
-          event.results[i].isFinal
-        ) {
-
-          finalTranscript += transcript;
-        }
-      }
-
-      if (!finalTranscript.trim())
-        return;
-
-      const cleanedText =
-        cleanCommand(finalTranscript);
-
-      console.log(cleanedText);
-
-
-
-      // =====================================
-      // EMAIL FLOW
-      // =====================================
-
-      if (emailMode) {
-
-        // EMAIL
-
-        if (emailStep === "to") {
-
-          setEmailData(prev => ({
-
-            ...prev,
-
-            to: cleanedText
-          }));
-
-          setEmailStep("subject");
-
-          speak("Tell me subject");
-
-          return;
-        }
-
-
-
-        // SUBJECT
-
-        if (emailStep === "subject") {
-
-          setEmailData(prev => ({
-
-            ...prev,
-
-            subject: cleanedText
-          }));
-
-          setEmailStep("message");
-
-          speak("Tell me message");
-
-          return;
-        }
-
-
-
-        // MESSAGE
-
-        if (emailStep === "message") {
-
-          const finalEmailData = {
-
-            ...emailData,
-
-            message: cleanedText
-          };
-
-          try {
-
-            speak("Sending email");
-
-            await axios.post(
-
-              `${serverUrl}/api/user/send-email`,
-
-              finalEmailData,
-
-              {
-                withCredentials: true
-              }
-            );
-
-            speak(
-              "Email sent successfully"
-            );
-
-            setAiText(
-              "Email sent successfully"
-            );
-
-          } catch (error) {
-
-            console.log(error);
-
-            speak(
-              "Failed to send email"
-            );
-          }
-
-          setEmailMode(false);
-
-          setEmailStep("");
-
-          setEmailData({
-
-            to: "",
-
-            subject: "",
-
-            message: ""
-          });
-
-          return;
-        }
-      }
-
-
-
-      // =====================================
-      // WAKE WORD DETECTION
-      // =====================================
-
-      const assistantName =
-        userData?.assistantName
-          ?.toLowerCase();
-
-      if (
-        assistantName &&
-        cleanedText.includes(
-          assistantName
-        )
-      ) {
-
-        const command =
-          cleanedText
-            .replace(
-              assistantName,
-              ""
-            )
-            .trim();
-
-        if (!command) {
-
-          speak("Yes?");
-          return;
-        }
-
-        try {
-
-          stopRecognition();
-
-          const data =
-            await getGeminiResponse(
-              command
-            );
-
-          handleCommand(data);
-
-        } catch (error) {
-
-          console.log(error);
-
-          speak(
-            "Sorry, something went wrong"
-          );
-        }
-      }
+    recognition.onresult = (event) => {
+      const transcript = event.results[event.results.length - 1][0].transcript
+        .toLowerCase()
+        .trim();
+
+      handleVoiceCommand(transcript);
     };
 
+    recognitionRef.current = recognition;
 
+    const greetAndStart = () => {
+      speak(`Hello ${userName}. Say ${assistantName} to wake me up.`);
+      startRecognition();
+    };
 
-    // =====================================
-    // GREETING
-    // =====================================
-
-    const greeting =
-      new SpeechSynthesisUtterance(
-
-        `Hello ${userData?.name || "User"}, say ${userData?.assistantName} to wake me up`
-      );
-
-    greeting.lang = "en-IN";
-
-    synth.speak(greeting);
-
-
-
-    // =====================================
-    // CLEANUP
-    // =====================================
+    document.addEventListener("click", greetAndStart, { once: true });
 
     return () => {
-
+      document.removeEventListener("click", greetAndStart);
       stopRecognition();
-
       synth.cancel();
     };
+  }, [assistantName, userName]);
 
-  }, [emailMode, emailStep, emailData]);
+  useEffect(() => {
+    const checkSpotifyStatus = async () => {
+      try {
+        const result = await axios.get(`${serverUrl}/api/spotify/status`, {
+          withCredentials: true,
+        });
 
+        setSpotifyConnected(Boolean(result.data?.connected));
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
+    checkSpotifyStatus();
+  }, [serverUrl, window.location.search]);
 
   return (
-
-    <div className='w-full h-[100vh] bg-gradient-to-t from-black to-[#02023d] flex flex-col items-center justify-center gap-4 overflow-hidden'>
-
-      {/* CUSTOMIZE */}
-
+    <div className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-gradient-to-t from-black to-[#02023d] px-4 text-white">
       <button
-        className='absolute top-20 right-5 min-w-[150px] h-[60px] text-black font-semibold bg-white rounded-full cursor-pointer text-[19px] px-[20px] py-[10px] hover:scale-105 transition-all duration-300'
-        onClick={() => navigate("/customize")}
+        aria-label="Connect Spotify"
+        className={`absolute left-4 top-4 flex h-11 items-center gap-2 rounded-full px-4 font-semibold shadow-lg transition hover:scale-105 sm:left-5 sm:top-5 ${
+          spotifyConnected
+            ? "bg-[#1db954] text-black"
+            : "bg-white text-black"
+        }`}
+        onClick={connectSpotify}
       >
-        Customize
+        <Music2 size={19} />
+        <span>{spotifyConnected ? "Spotify Ready" : "Connect Spotify"}</span>
       </button>
 
+      <div className="absolute right-4 top-4 flex gap-3 sm:right-5 sm:top-5">
+        <button
+          aria-label="Customize assistant"
+          className="grid h-11 w-11 place-items-center rounded-full bg-white text-black shadow-lg transition hover:scale-105 sm:h-auto sm:w-auto sm:px-5 sm:py-3"
+          onClick={() => navigate("/customize")}
+        >
+          <Settings size={20} />
+          <span className="ml-2 hidden font-semibold sm:inline">Customize</span>
+        </button>
 
-
-      {/* LOGOUT */}
-
-      <button
-        onClick={handleLogOut}
-        className='absolute top-5 right-5 bg-white px-5 py-2 rounded-full font-semibold hover:scale-105 transition-all duration-300'
-      >
-        Logout
-      </button>
-
-
-
-      {/* ASSISTANT IMAGE */}
-
-      <div className='w-[250px] h-[300px] rounded-3xl overflow-hidden shadow-2xl border border-white/20'>
-
-        <img
-          src={userData?.assistantImage}
-          className='h-full w-full object-cover'
-        />
+        <button
+          aria-label="Logout"
+          className="grid h-11 w-11 place-items-center rounded-full bg-white text-black shadow-lg transition hover:scale-105 sm:h-auto sm:w-auto sm:px-5 sm:py-3"
+          onClick={handleLogOut}
+        >
+          <LogOut size={20} />
+          <span className="ml-2 hidden font-semibold sm:inline">Logout</span>
+        </button>
       </div>
 
+      <main className="flex min-h-0 w-full max-w-[760px] flex-1 flex-col items-center justify-center gap-3 pt-20 pb-28 sm:gap-4 sm:pt-20 sm:pb-24">
+        <div className="h-[220px] w-[185px] overflow-hidden rounded-3xl border border-white/20 shadow-2xl sm:h-[280px] sm:w-[235px] lg:h-[300px] lg:w-[250px]">
+          <img
+            alt={assistantName}
+            className="h-full w-full object-cover"
+            src={userData?.assistantImage}
+          />
+        </div>
 
+        <div className="flex max-w-full flex-col items-center gap-1 text-center">
+          <h1 className="max-w-[90vw] break-words text-2xl font-bold leading-tight text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.28)] sm:max-w-[560px] sm:text-3xl">
+            {assistantName}
+          </h1>
+          <p className="text-sm font-medium text-white/65">
+            {listening ? "Listening..." : `Say "${assistantName}" to wake me`}
+          </p>
+        </div>
 
-      {/* ASSISTANT NAME */}
+        <h2 className="min-h-[58px] max-w-[700px] px-2 text-center text-base font-light leading-7 text-white/95 sm:min-h-[72px] sm:text-lg sm:leading-8">
+          {loading ? "Thinking..." : latestAssistantMessage}
+        </h2>
 
-      <h1 className='text-white text-2xl font-semibold tracking-wide'>
+        <div className="flex h-[44px] items-center justify-center">
+          {listening && (
+            <div className="flex h-[40px] items-end gap-2">
+              <span className="h-3 w-2 animate-bounce rounded-full bg-white" />
+              <span
+                className="h-6 w-2 animate-bounce rounded-full bg-white"
+                style={{ animationDelay: "0.1s" }}
+              />
+              <span
+                className="h-10 w-2 animate-bounce rounded-full bg-white"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <span
+                className="h-6 w-2 animate-bounce rounded-full bg-white"
+                style={{ animationDelay: "0.3s" }}
+              />
+              <span
+                className="h-3 w-2 animate-bounce rounded-full bg-white"
+                style={{ animationDelay: "0.4s" }}
+              />
+            </div>
+          )}
+        </div>
 
-        {userData?.assistantName}
-      </h1>
+        <div ref={endRef} />
+      </main>
 
-
-
-      {/* GIF */}
-
-      {!aiText ? (
-
-        <img
-          src={userImg}
-          className='w-[140px]'
+      <footer className="absolute bottom-4 left-1/2 flex w-[calc(100%-32px)] max-w-[720px] -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-white/95 p-2 shadow-2xl">
+        <input
+          className="min-w-0 flex-1 rounded-full bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-slate-500"
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") sendMessage();
+          }}
+          placeholder={`Ask ${assistantName} anything...`}
+          value={input}
         />
-
-      ) : (
-
-        <img
-          src={aiImg}
-          className='w-[140px]'
-        />
-      )}
-
-
-
-      {/* AI TEXT */}
-
-      <h2 className='text-white text-center px-6 max-w-[700px] text-lg font-light leading-8 min-h-[70px]'>
-
-        {aiText}
-      </h2>
-
-
-
-      {/* VOICE ANIMATION */}
-
-      <div className='flex items-center justify-center mt-2 h-[40px]'>
-
-        {listening && (
-
-          <div className='flex gap-2 items-end h-[40px]'>
-
-            <span className='w-2 bg-white rounded-full animate-bounce h-3'></span>
-
-            <span
-              className='w-2 bg-white rounded-full animate-bounce h-6'
-              style={{ animationDelay: "0.1s" }}
-            ></span>
-
-            <span
-              className='w-2 bg-white rounded-full animate-bounce h-10'
-              style={{ animationDelay: "0.2s" }}
-            ></span>
-
-            <span
-              className='w-2 bg-white rounded-full animate-bounce h-6'
-              style={{ animationDelay: "0.3s" }}
-            ></span>
-
-            <span
-              className='w-2 bg-white rounded-full animate-bounce h-3'
-              style={{ animationDelay: "0.4s" }}
-            ></span>
-
-          </div>
-        )}
-      </div>
-
+        <button
+          aria-label="Send message"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white transition hover:bg-slate-800"
+          onClick={() => sendMessage()}
+        >
+          <Send size={18} />
+        </button>
+        <button
+          aria-label="Start voice listening"
+          className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition ${
+            listening
+              ? "bg-rose-600 hover:bg-rose-700"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
+          onClick={startRecognition}
+        >
+          <Mic size={18} />
+        </button>
+      </footer>
     </div>
   );
 }

@@ -5,6 +5,27 @@ import moment from "moment";
 import executeCommand from "../commandExecutor.js";
 import sendMail from "../utils/mailSender.js";
 
+const cleanMusicQuery = (text = "", assistantName = "") => {
+
+    const assistantPattern = assistantName
+        ? new RegExp(`\\b${assistantName}\\b`, "gi")
+        : null;
+
+    let query = text;
+
+    if (assistantPattern) {
+
+        query = query.replace(assistantPattern, "");
+    }
+
+    return query
+        .replace(/\b(on|in)\s+spotify\b/gi, "")
+        .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
+        .replace(/\bplay\b/gi, "")
+        .replace(/\bsong\b/gi, "")
+        .trim();
+};
+
 
 // ====================================
 // GET CURRENT USER
@@ -97,7 +118,7 @@ export const askToAssistant = async (req, res) => {
 
     try {
 
-        const { command } = req.body;
+        const { command, history = [], systemPrompt = "" } = req.body;
 
         if (!command) {
 
@@ -142,7 +163,9 @@ export const askToAssistant = async (req, res) => {
         const result = await groqResponse(
             command,
             assistantName,
-            userName
+            userName,
+            history,
+            systemPrompt
         );
 
         console.log("RAW AI RESPONSE:", result);
@@ -174,6 +197,15 @@ export const askToAssistant = async (req, res) => {
 
 
         const type = aiResult.type;
+
+        if (
+            ["play-music", "spotify-play", "youtube-music-play"].includes(type)
+        ) {
+
+            aiResult.userInput =
+                cleanMusicQuery(aiResult.userInput, assistantName) ||
+                cleanMusicQuery(command, assistantName);
+        }
 
 
         // ====================================
@@ -269,14 +301,27 @@ export const askToAssistant = async (req, res) => {
             case "open-youtube":
 
             case "play-music":
+
+            case "spotify-play":
+
+            case "youtube-music-play":
             
             case "send-email":
 
 
-                await executeCommand(
-    type,
-    aiResult.userInput
-);
+                if (
+                    [
+                        "open-chrome",
+                        "open-notepad",
+                        "open-vscode"
+                    ].includes(type)
+                ) {
+
+                    await executeCommand(
+                        type,
+                        aiResult.userInput
+                    );
+                }
 
 return res.json({
 

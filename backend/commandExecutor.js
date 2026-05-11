@@ -45,6 +45,37 @@ const executeCommand = async (type, userInput) => {
 
 
             // =========================
+            // MUSIC
+            // =========================
+
+            case "play-music":
+
+                await open(
+                    `https://music.youtube.com/search?q=${encodeURIComponent(userInput)}`
+                );
+
+                break;
+
+
+            case "spotify-play":
+
+                await open(
+                    `https://open.spotify.com/search/${encodeURIComponent(userInput)}`
+                );
+
+                break;
+
+
+            case "youtube-music-play":
+
+                await open(
+                    `https://music.youtube.com/search?q=${encodeURIComponent(userInput)}`
+                );
+
+                break;
+
+
+            // =========================
             // OPEN CHROME
             // =========================
 

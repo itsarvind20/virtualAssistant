@@ -16,8 +16,13 @@ const userSchema = new mongoose.Schema({
     assistantName:{
         type:String
     },
-     assistantImage:{
+    assistantImage:{
         type:String
+    },
+    spotify:{
+        accessToken:String,
+        refreshToken:String,
+        expiresAt:Number
     },
     history:[
         {type:String}
