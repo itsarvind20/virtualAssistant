@@ -213,22 +213,6 @@ function Home() {
 
 
 
-    // =====================================
-    // EMAIL MODE
-    // =====================================
-
-    if (type === "send-email") {
-
-      setEmailMode(true);
-
-      setEmailStep("to");
-
-      speak("Tell me recipient email");
-
-      return;
-    }
-
-
 
     // =====================================
     // GOOGLE SEARCH
@@ -250,31 +234,21 @@ function Home() {
     // YOUTUBE
     // =====================================
 
+<<<<<<< Updated upstream
     if (type === "youtube-search") {
+=======
+if (type === "youtube-search") {
+>>>>>>> Stashed changes
 
-      window.open(
+  window.open(
 
-        `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`,
+    `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`,
 
-        "_blank"
-      );
-    }
+    "_blank"
+  );
+}
 
 
-
-    // =====================================
-    // CALCULATOR
-    // =====================================
-
-    if (type === "calculator-open") {
-
-      window.open(
-
-        `https://www.google.com/search?q=calculator`,
-
-        "_blank"
-      );
-    }
 
 
 

@@ -123,7 +123,10 @@ const executeCommand = async (type, userInput) => {
 
                 break;
 
-
+            // case "play-music":
+            //     await playMusic(
+            //                    aiResult.userInput
+            //                 );
             default:
 
                 console.log("No executable command");

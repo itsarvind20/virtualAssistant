@@ -3,8 +3,7 @@ import groqResponse from "../groq.js";
 import User from "../models/user.model.js";
 import moment from "moment";
 import executeCommand from "../commandExecutor.js";
-import sendMail from "../utils/mailSender.js";
-
+import playMusic from "../utils/playMusic.js";
 
 // ====================================
 // GET CURRENT USER
@@ -243,50 +242,23 @@ export const askToAssistant = async (req, res) => {
             // ====================================
             // NORMAL COMMANDS
             // ====================================
-
-            case "google-search":
-
-            case "youtube-search":
-
+            
             case "youtube-play":
 
-            case "general":
+            await playMusic(
+               aiResult.userInput
+            );
 
-            case "calculator-open":
+            return res.json({
 
-            case "instagram-open":
+               type,
 
-            case "facebook-open":
+               userInput:
+               aiResult.userInput,
 
-            case "weather-show":
-
-            case "open-chrome":
-
-            case "open-notepad":
-
-            case "open-vscode":
-
-            case "open-youtube":
-
-            case "play-music":
-            
-            case "send-email":
-
-
-                await executeCommand(
-    type,
-    aiResult.userInput
-);
-
-return res.json({
-
-   type,
-
-   userInput: aiResult.userInput,
-
-   response: aiResult.response
-});
-
+               response:
+               aiResult.response
+            });
 
 
             // ====================================
