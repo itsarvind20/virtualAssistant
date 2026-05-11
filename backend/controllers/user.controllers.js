@@ -19,7 +19,6 @@ const cleanMusicQuery = (text = "", assistantName = "") => {
     }
 
     return query
-        .replace(/\b(on|in)\s+spotify\b/gi, "")
         .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
         .replace(/\bplay\b/gi, "")
         .replace(/\bsong\b/gi, "")
@@ -199,7 +198,7 @@ export const askToAssistant = async (req, res) => {
         const type = aiResult.type;
 
         if (
-            ["play-music", "spotify-play", "youtube-music-play"].includes(type)
+            ["play-music", "youtube-music-play"].includes(type)
         ) {
 
             aiResult.userInput =
@@ -301,8 +300,6 @@ export const askToAssistant = async (req, res) => {
             case "open-youtube":
 
             case "play-music":
-
-            case "spotify-play":
 
             case "youtube-music-play":
             

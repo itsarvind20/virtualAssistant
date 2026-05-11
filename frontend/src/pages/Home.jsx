@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { LogOut, Mic, Music2, Send, Settings } from "lucide-react";
+import { LogOut, Mic, Send, Settings } from "lucide-react";
 import { userDataContext } from "../context/UserContext";
 
 function Home() {
@@ -22,7 +22,6 @@ function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
 
   const recognitionRef = useRef(null);
   const isSpeakingRef = useRef(false);
@@ -48,12 +47,7 @@ Rules:
 - Reply in short, natural sentences because responses may be spoken aloud.
 - Remember the conversation history and refer back when useful.
 - If the user asks for an app, website, search, YouTube, date, or time action, classify it with the right action type.
-- For music, use YouTube Music when the user says YouTube Music.
-- ${
-      spotifyConnected
-        ? "For music, use Spotify by default because Spotify is connected."
-        : "For music, use YouTube Music by default unless the user says Spotify."
-    }
+- For music, always use YouTube Music.
 - If you do not know something, say so honestly.
 `.trim();
 
@@ -108,56 +102,24 @@ Rules:
   const cleanMusicQuery = (text = "") =>
     text
       .replace(new RegExp(`\\b${assistantName}\\b`, "gi"), "")
-      .replace(/\b(on|in)\s+spotify\b/gi, "")
       .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
       .replace(/\bplay\b/gi, "")
       .replace(/\bsong\b/gi, "")
       .trim();
 
-  const connectSpotify = async () => {
-    try {
-      const result = await axios.get(`${serverUrl}/api/spotify/login`, {
-        withCredentials: true,
-      });
-
-      if (result.data?.url) {
-        window.location.href = result.data.url;
-      }
-    } catch (error) {
-      console.log(error);
-      speak("Spotify login failed. Check your Spotify setup.");
-    }
-  };
-
-  const playOnSpotify = async (song) => {
+  const openYoutubeMusic = (song) => {
     const query = cleanMusicQuery(song);
 
     if (!query) {
-      return "Tell me which song you want me to play on Spotify.";
+      return "Tell me which song you want me to play.";
     }
 
-    try {
-      const result = await axios.post(
-        `${serverUrl}/api/spotify/play`,
-        { query },
-        { withCredentials: true }
-      );
+    window.open(
+      `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
+      "_blank"
+    );
 
-      return result.data?.message || "Playing on Spotify.";
-    } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        "Spotify playback failed. Connect Spotify and open it on a device first.";
-
-      if (error.response?.status !== 403) {
-        window.open(
-          `https://open.spotify.com/search/${encodeURIComponent(query)}`,
-          "_blank"
-        );
-      }
-
-      return message;
-    }
+    return `Opening ${query} on YouTube Music.`;
   };
 
   const runBrowserAction = async ({ type, userInput }, originalMessage = "") => {
@@ -175,19 +137,8 @@ Rules:
       );
     }
 
-    if (type === "play-music" && spotifyConnected) {
-      return playOnSpotify(actionInput);
-    }
-
     if (type === "play-music" || type === "youtube-music-play") {
-      window.open(
-        `https://music.youtube.com/search?q=${encodedInput}`,
-        "_blank"
-      );
-    }
-
-    if (type === "spotify-play") {
-      return playOnSpotify(actionInput);
+      return openYoutubeMusic(actionInput);
     }
 
     if (type === "open-youtube") {
@@ -254,6 +205,7 @@ Rules:
 
     addMessage("user", message);
     setInput("");
+
     setLoading(true);
 
     try {
@@ -370,37 +322,8 @@ Rules:
     };
   }, [assistantName, userName]);
 
-  useEffect(() => {
-    const checkSpotifyStatus = async () => {
-      try {
-        const result = await axios.get(`${serverUrl}/api/spotify/status`, {
-          withCredentials: true,
-        });
-
-        setSpotifyConnected(Boolean(result.data?.connected));
-      } catch (error) {
-        console.log(error);
-      }
-    };
-
-    checkSpotifyStatus();
-  }, [serverUrl, window.location.search]);
-
   return (
     <div className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-gradient-to-t from-black to-[#02023d] px-4 text-white">
-      <button
-        aria-label="Connect Spotify"
-        className={`absolute left-4 top-4 flex h-11 items-center gap-2 rounded-full px-4 font-semibold shadow-lg transition hover:scale-105 sm:left-5 sm:top-5 ${
-          spotifyConnected
-            ? "bg-[#1db954] text-black"
-            : "bg-white text-black"
-        }`}
-        onClick={connectSpotify}
-      >
-        <Music2 size={19} />
-        <span>{spotifyConnected ? "Spotify Ready" : "Connect Spotify"}</span>
-      </button>
-
       <div className="absolute right-4 top-4 flex gap-3 sm:right-5 sm:top-5">
         <button
           aria-label="Customize assistant"

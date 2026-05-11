@@ -8,7 +8,6 @@ import cookieParser from "cookie-parser";
 import connectDb from "./config/db.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
-import spotifyRouter from "./routes/spotify.routes.js";
 import groqResponse from "./groq.js"
 import sendMail from "./utils/mailSender.js";
 
@@ -35,7 +34,6 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
-app.use("/api/spotify", spotifyRouter);
 
 
 

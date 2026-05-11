@@ -57,15 +57,6 @@ const executeCommand = async (type, userInput) => {
                 break;
 
 
-            case "spotify-play":
-
-                await open(
-                    `https://open.spotify.com/search/${encodeURIComponent(userInput)}`
-                );
-
-                break;
-
-
             case "youtube-music-play":
 
                 await open(
