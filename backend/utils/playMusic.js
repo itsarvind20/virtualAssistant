@@ -1,266 +1,266 @@
-// import puppeteer from "puppeteer";
+import puppeteer from "puppeteer";
 
-// const playMusic = async (songName) => {
+const playMusic = async (songName) => {
 
-//     try {
+    try {
 
-//         const browser =
-//             await puppeteer.launch({
+        const browser =
+            await puppeteer.launch({
 
-//                 headless: false,
+                headless: false,
 
-//                 executablePath:
-//                 "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                executablePath:
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
 
-//                 defaultViewport: null,
+                defaultViewport: null,
 
-//                 args: [
+                args: [
 
-//                     "--start-maximized",
+                    "--start-maximized",
 
-//                     "--disable-notifications",
+                    "--disable-notifications",
 
-//                     "--autoplay-policy=no-user-gesture-required"
-//                 ]
-//             });
+                    "--autoplay-policy=no-user-gesture-required"
+                ]
+            });
 
-//         const page =
-//             await browser.newPage();
+        const page =
+            await browser.newPage();
 
 
 
-//         // =====================================
-//         // BLOCK ADS REQUESTS
-//         // =====================================
+        // =====================================
+        // BLOCK ADS REQUESTS
+        // =====================================
 
-//         await page.setRequestInterception(true);
+        await page.setRequestInterception(true);
 
-//         page.on("request", (req) => {
+        page.on("request", (req) => {
 
-//             const url = req.url();
+            const url = req.url();
 
-//             if (
+            if (
 
-//                 url.includes("doubleclick.net") ||
+                url.includes("doubleclick.net") ||
 
-//                 url.includes("googlesyndication") ||
+                url.includes("googlesyndication") ||
 
-//                 url.includes("googleads") ||
+                url.includes("googleads") ||
 
-//                 url.includes("adservice")
+                url.includes("adservice")
 
-//             ) {
+            ) {
 
-//                 req.abort();
+                req.abort();
 
-//             } else {
+            } else {
 
-//                 req.continue();
-//             }
-//         });
+                req.continue();
+            }
+        });
 
 
 
-//         // =====================================
-//         // OPEN YOUTUBE MUSIC
-//         // =====================================
+        // =====================================
+        // OPEN YOUTUBE MUSIC
+        // =====================================
 
-//         await page.goto(
+        await page.goto(
 
-//             `https://music.youtube.com/search?q=${encodeURIComponent(songName)}`,
+            `https://music.youtube.com/search?q=${encodeURIComponent(songName)}`,
 
-//             {
-//                 waitUntil: "networkidle2",
-//                 timeout: 0
-//             }
-//         );
+            {
+                waitUntil: "networkidle2",
+                timeout: 0
+            }
+        );
 
 
 
-//         // =====================================
-//         // WAIT FOR SONGS
-//         // =====================================
+        // =====================================
+        // WAIT FOR SONGS
+        // =====================================
 
-//         await page.waitForSelector(
+        await page.waitForSelector(
 
-//             "ytmusic-responsive-list-item-renderer",
+            "ytmusic-responsive-list-item-renderer",
 
-//             {
-//                 timeout: 15000
-//             }
-//         );
+            {
+                timeout: 15000
+            }
+        );
 
 
 
-//         // =====================================
-//         // SMALL WAIT
-//         // =====================================
+        // =====================================
+        // SMALL WAIT
+        // =====================================
 
-//         await new Promise(resolve =>
-//             setTimeout(resolve, 3000)
-//         );
+        await new Promise(resolve =>
+            setTimeout(resolve, 3000)
+        );
 
 
 
-//         // =====================================
-//         // CLICK FIRST SONG
-//         // =====================================
+        // =====================================
+        // CLICK FIRST SONG
+        // =====================================
 
-//         await page.evaluate(() => {
+        await page.evaluate(() => {
 
-//             const firstSong =
-//                 document.querySelector(
+            const firstSong =
+                document.querySelector(
 
-//                     "ytmusic-responsive-list-item-renderer a"
-//                 );
+                    "ytmusic-responsive-list-item-renderer a"
+                );
 
-//             if (firstSong) {
+            if (firstSong) {
 
-//                 firstSong.click();
-//             }
-//         });
+                firstSong.click();
+            }
+        });
 
 
 
-//         console.log(
-//             "Playing Music..."
-//         );
+        console.log(
+            "Playing Music..."
+        );
 
 
 
-//         // =====================================
-//         // WAIT PLAYER
-//         // =====================================
+        // =====================================
+        // WAIT PLAYER
+        // =====================================
 
-//         await new Promise(resolve =>
-//             setTimeout(resolve, 5000)
-//         );
+        await new Promise(resolve =>
+            setTimeout(resolve, 5000)
+        );
 
 
 
-//         // =====================================
-//         // FORCE PLAY
-//         // =====================================
+        // =====================================
+        // FORCE PLAY
+        // =====================================
 
-//         await page.evaluate(() => {
+        await page.evaluate(() => {
 
-//             const video =
-//                 document.querySelector("video");
+            const video =
+                document.querySelector("video");
 
-//             if (video) {
+            if (video) {
 
-//                 video.play();
-//             }
-//         });
+                video.play();
+            }
+        });
 
 
 
-//         // =====================================
-//         // AUTO SKIP ADS
-//         // =====================================
+        // =====================================
+        // AUTO SKIP ADS
+        // =====================================
 
-//         setInterval(async () => {
+        setInterval(async () => {
 
-//             try {
+            try {
 
-//                 // SKIP BUTTON
+                // SKIP BUTTON
 
-//                 const skipButton =
-//                     await page.$(
+                const skipButton =
+                    await page.$(
 
-//                         ".ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button"
-//                     );
+                        ".ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button"
+                    );
 
-//                 if (skipButton) {
+                if (skipButton) {
 
-//                     await skipButton.click();
+                    await skipButton.click();
 
-//                     console.log(
-//                         "Ad skipped"
-//                     );
-//                 }
+                    console.log(
+                        "Ad skipped"
+                    );
+                }
 
 
 
-//                 // CLOSE OVERLAY ADS
+                // CLOSE OVERLAY ADS
 
-//                 const overlay =
-//                     await page.$(
+                const overlay =
+                    await page.$(
 
-//                         ".ytp-ad-overlay-close-button"
-//                     );
+                        ".ytp-ad-overlay-close-button"
+                    );
 
-//                 if (overlay) {
+                if (overlay) {
 
-//                     await overlay.click();
+                    await overlay.click();
 
-//                     console.log(
-//                         "Overlay closed"
-//                     );
-//                 }
+                    console.log(
+                        "Overlay closed"
+                    );
+                }
 
 
 
-//                 // FAST FORWARD ADS
+                // FAST FORWARD ADS
 
-//                 const adShowing =
-//                     await page.evaluate(() => {
+                const adShowing =
+                    await page.evaluate(() => {
 
-//                         return document.querySelector(
-//                             ".ad-showing"
-//                         ) !== null;
-//                     });
+                        return document.querySelector(
+                            ".ad-showing"
+                        ) !== null;
+                    });
 
-//                 if (adShowing) {
+                if (adShowing) {
 
-//                     await page.evaluate(() => {
+                    await page.evaluate(() => {
 
-//                         const video =
-//                             document.querySelector(
-//                                 "video"
-//                             );
+                        const video =
+                            document.querySelector(
+                                "video"
+                            );
 
-//                         if (video) {
+                        if (video) {
 
-//                             video.playbackRate = 16;
-//                         }
-//                     });
+                            video.playbackRate = 16;
+                        }
+                    });
 
-//                 } else {
+                } else {
 
-//                     await page.evaluate(() => {
+                    await page.evaluate(() => {
 
-//                         const video =
-//                             document.querySelector(
-//                                 "video"
-//                             );
+                        const video =
+                            document.querySelector(
+                                "video"
+                            );
 
-//                         if (video) {
+                        if (video) {
 
-//                             video.playbackRate = 1;
-//                         }
-//                     });
-//                 }
+                            video.playbackRate = 1;
+                        }
+                    });
+                }
 
-//             } catch (error) {
+            } catch (error) {
 
-//                 console.log(
-//                     "Ad skip error:",
-//                     error.message
-//                 );
-//             }
+                console.log(
+                    "Ad skip error:",
+                    error.message
+                );
+            }
 
-//         }, 1500);
+        }, 1500);
 
 
 
-//     } catch (error) {
+    } catch (error) {
 
-//         console.log(
-//             "Play Music Error:",
-//             error.message
-//         );
-//     }
-// };
+        console.log(
+            "Play Music Error:",
+            error.message
+        );
+    }
+};
 
-// export default playMusic;
+export default playMusic;

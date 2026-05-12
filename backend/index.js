@@ -75,34 +75,6 @@ app.post("/ai", async (req, res) => {
     }
 });
 
-app.post("/send-mail", async (req, res) => {
-
-    const {
-        to,
-        subject,
-        message
-    } = req.body;
-
-    const success = await sendMail(
-
-        to,
-        subject,
-        message
-    );
-
-    if (success) {
-
-        return res.json({
-
-            success: true
-        });
-    }
-
-    return res.json({
-
-        success: false
-    });
-});
 
 // =========================
 // SERVER START

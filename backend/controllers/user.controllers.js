@@ -321,15 +321,20 @@ export const askToAssistant = async (req, res) => {
                     );
                 }
 
-return res.json({
+            await playMusic(
+               aiResult.userInput
+            );
 
-   type,
+            return res.json({
 
-   userInput: aiResult.userInput,
+               type,
 
-   response: aiResult.response
-});
+               userInput:
+               aiResult.userInput,
 
+               response:
+               aiResult.response
+            });
 
 
             // ====================================
