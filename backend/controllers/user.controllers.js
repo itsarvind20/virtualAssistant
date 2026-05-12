@@ -187,10 +187,12 @@ export const askToAssistant = async (req, res) => {
                 parseError
             );
 
-            return res.status(400).json({
+            return res.status(200).json({
 
+                type: "general",
+                userInput: command,
                 response:
-                    "Invalid AI response format"
+                    "Sorry, I couldn't understand that properly."
             });
         }
 
@@ -337,8 +339,10 @@ return res.json({
 
             default:
 
-                return res.status(400).json({
+                return res.status(200).json({
 
+                    type: "general",
+                    userInput: aiResult.userInput || command,
                     response:
                         "I didn't understand that command."
                 });

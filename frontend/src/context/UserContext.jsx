@@ -36,6 +36,13 @@ function UserContext({ children }) {
       return result.data;
     } catch (error) {
       console.log(error);
+      return (
+        error.response?.data || {
+          type: "general",
+          userInput: command,
+          response: "Sorry, something went wrong. Please try again.",
+        }
+      );
     }
   };
 
