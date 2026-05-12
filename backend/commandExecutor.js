@@ -46,14 +46,23 @@ const executeCommand = async (type, userInput) => {
 
 
             // =========================
-            // YOUTUBE MUSIC PLAYER
+            // MUSIC
             // =========================
-
-            case "youtube-play":
 
             case "play-music":
 
-                await playYouTubeVideo(userInput);
+                await open(
+                    `https://music.youtube.com/search?q=${encodeURIComponent(userInput)}`
+                );
+
+                break;
+
+
+            case "youtube-music-play":
+
+                await open(
+                    `https://music.youtube.com/search?q=${encodeURIComponent(userInput)}`
+                );
 
                 break;
 

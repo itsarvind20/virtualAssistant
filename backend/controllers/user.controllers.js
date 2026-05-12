@@ -3,7 +3,28 @@ import groqResponse from "../groq.js";
 import User from "../models/user.model.js";
 import moment from "moment";
 import executeCommand from "../commandExecutor.js";
-import playMusic from "../utils/playMusic.js";
+import sendMail from "../utils/playMusic.js";
+
+const cleanMusicQuery = (text = "", assistantName = "") => {
+
+    const assistantPattern = assistantName
+        ? new RegExp(`\\b${assistantName}\\b`, "gi")
+        : null;
+
+    let query = text;
+
+    if (assistantPattern) {
+
+        query = query.replace(assistantPattern, "");
+    }
+
+    return query
+        .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
+        .replace(/\bplay\b/gi, "")
+        .replace(/\bsong\b/gi, "")
+        .trim();
+};
+
 
 // ====================================
 // GET CURRENT USER
@@ -96,7 +117,7 @@ export const askToAssistant = async (req, res) => {
 
     try {
 
-        const { command } = req.body;
+        const { command, history = [], systemPrompt = "" } = req.body;
 
         if (!command) {
 
@@ -141,7 +162,9 @@ export const askToAssistant = async (req, res) => {
         const result = await groqResponse(
             command,
             assistantName,
-            userName
+            userName,
+            history,
+            systemPrompt
         );
 
         console.log("RAW AI RESPONSE:", result);
@@ -164,15 +187,26 @@ export const askToAssistant = async (req, res) => {
                 parseError
             );
 
-            return res.status(400).json({
+            return res.status(200).json({
 
+                type: "general",
+                userInput: command,
                 response:
-                    "Invalid AI response format"
+                    "Sorry, I couldn't understand that properly."
             });
         }
 
 
         const type = aiResult.type;
+
+        if (
+            ["play-music", "youtube-music-play"].includes(type)
+        ) {
+
+            aiResult.userInput =
+                cleanMusicQuery(aiResult.userInput, assistantName) ||
+                cleanMusicQuery(command, assistantName);
+        }
 
 
         // ====================================
@@ -236,14 +270,56 @@ export const askToAssistant = async (req, res) => {
                     response:
                         `Current month is ${moment().format("MMMM")}`
                 });
-
-
+                
 
             // ====================================
             // NORMAL COMMANDS
             // ====================================
-            
+
+            case "google-search":
+
+            case "youtube-search":
+
             case "youtube-play":
+
+            case "general":
+
+            case "calculator-open":
+
+            case "instagram-open":
+
+            case "facebook-open":
+
+            case "weather-show":
+
+            case "open-chrome":
+
+            case "open-notepad":
+
+            case "open-vscode":
+
+            case "open-youtube":
+
+            case "play-music":
+
+            case "youtube-music-play":
+            
+            case "send-email":
+
+
+                if (
+                    [
+                        "open-chrome",
+                        "open-notepad",
+                        "open-vscode"
+                    ].includes(type)
+                ) {
+
+                    await executeCommand(
+                        type,
+                        aiResult.userInput
+                    );
+                }
 
             await playMusic(
                aiResult.userInput
@@ -267,8 +343,10 @@ export const askToAssistant = async (req, res) => {
 
             default:
 
-                return res.status(400).json({
+                return res.status(200).json({
 
+                    type: "general",
+                    userInput: aiResult.userInput || command,
                     response:
                         "I didn't understand that command."
                 });

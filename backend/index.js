@@ -4,14 +4,11 @@ dotenv.config();
 
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { exec } from "child_process";
-import open from "open";
 
 import connectDb from "./config/db.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import groqResponse from "./groq.js"
-
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -59,28 +56,12 @@ app.post("/ai", async (req, res) => {
         }
 
 
-        // FIRST CHECK DESKTOP COMMANDS
-        const desktopResponse = await executeDesktopCommand(prompt);
-
-
-        // IF COMMAND FOUND
-        if (desktopResponse) {
-
-            return res.json({
-                success: true,
-                response: desktopResponse
-            });
-        }
-
-
-        // OTHERWISE USE AI
-        let response;
-        
-        response = await groqResponse(prompt);
+        const aiResult = await groqResponse(prompt, "Assistant", "User");
+        const parsedResult = JSON.parse(aiResult);
 
         return res.json({
             success: true,
-            response
+            ...parsedResult
         });
 
     } catch (error) {

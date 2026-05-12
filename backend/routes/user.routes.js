@@ -2,7 +2,6 @@ import express from "express"
 import { getCurrentUser,updateAssistant,askToAssistant} from "../controllers/user.controllers.js"
 import isAuth from "../middlewares/isAuth.js"
 import upload from "../middlewares/multer.js"
-import sendMail from "../utils/mailSender.js"
 const userRouter=express.Router()
 
 userRouter.get("/current",isAuth,getCurrentUser)
