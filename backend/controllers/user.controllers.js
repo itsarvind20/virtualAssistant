@@ -3,7 +3,7 @@ import groqResponse from "../groq.js";
 import User from "../models/user.model.js";
 import moment from "moment";
 import executeCommand from "../commandExecutor.js";
-import sendMail from "../utils/mailSender.js";
+import sendMail from "../utils/playMusic.js";
 
 const cleanMusicQuery = (text = "", assistantName = "") => {
 
@@ -270,8 +270,7 @@ export const askToAssistant = async (req, res) => {
                     response:
                         `Current month is ${moment().format("MMMM")}`
                 });
-
-
+                
 
             // ====================================
             // NORMAL COMMANDS

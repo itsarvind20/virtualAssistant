@@ -9,8 +9,6 @@ import connectDb from "./config/db.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import groqResponse from "./groq.js"
-import sendMail from "./utils/mailSender.js";
-
 const app = express();
 const port = process.env.PORT || 3000;
 
