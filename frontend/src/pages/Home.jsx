@@ -234,19 +234,18 @@ function Home() {
     // YOUTUBE
     // =====================================
 
-<<<<<<< Updated upstream
-    if (type === "youtube-search") {
-=======
-if (type === "youtube-search") {
->>>>>>> Stashed changes
+// <<<<<<< Updated upstream
 
-  window.open(
+// if (type === "youtube-search") {
+// >>>>>>> Stashed changes
 
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`,
+//   window.open(
 
-    "_blank"
-  );
-}
+//     `https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`,
+
+//     "_blank"
+//   );
+// }
 
 
 
