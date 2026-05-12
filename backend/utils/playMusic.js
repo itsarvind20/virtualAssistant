@@ -1,265 +1,109 @@
 import puppeteer from "puppeteer";
 
+const skipAds = async (page) => {
+
+    const interval = setInterval(async () => {
+
+        try {
+
+            if (page.isClosed()) {
+                clearInterval(interval);
+                return;
+            }
+
+            const skipButton = await page.$(
+                ".ytp-ad-skip-button, .ytp-skip-ad-button"
+            );
+
+            if (skipButton) {
+
+                console.log("Ad skipped");
+
+                await skipButton.click().catch(() => {});
+            }
+
+            const adShowing = await page.$(".ad-showing");
+
+            if (adShowing) {
+
+                console.log("Skipping video ad");
+
+                await page.evaluate(() => {
+
+                    const video = document.querySelector("video");
+
+                    if (video) {
+                        video.currentTime = video.duration;
+                    }
+
+                }).catch(() => {});
+            }
+
+        } catch (error) {
+
+            console.log("Retrying ad skip...");
+        }
+
+    }, 2000);
+};
+
 const playMusic = async (songName) => {
 
     try {
 
-        const browser =
-            await puppeteer.launch({
+        const browser = await puppeteer.launch({
+            headless: false,
 
-                headless: false,
+            defaultViewport: null,
 
-                executablePath:
-                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-
-                defaultViewport: null,
-
-                args: [
-
-                    "--start-maximized",
-
-                    "--disable-notifications",
-
-                    "--autoplay-policy=no-user-gesture-required"
-                ]
-            });
-
-        const page =
-            await browser.newPage();
-
-
-
-        // =====================================
-        // BLOCK ADS REQUESTS
-        // =====================================
-
-        await page.setRequestInterception(true);
-
-        page.on("request", (req) => {
-
-            const url = req.url();
-
-            if (
-
-                url.includes("doubleclick.net") ||
-
-                url.includes("googlesyndication") ||
-
-                url.includes("googleads") ||
-
-                url.includes("adservice")
-
-            ) {
-
-                req.abort();
-
-            } else {
-
-                req.continue();
-            }
+            args: [
+                "--start-maximized",
+                "--autoplay-policy=no-user-gesture-required"
+            ]
         });
 
+        const page = await browser.newPage();
 
-
-        // =====================================
-        // OPEN YOUTUBE MUSIC
-        // =====================================
+        const query = `${songName} official audio`;
 
         await page.goto(
-
-            `https://music.youtube.com/search?q=${encodeURIComponent(songName)}`,
-
+            `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
             {
-                waitUntil: "networkidle2",
-                timeout: 0
+                waitUntil: "networkidle2"
             }
         );
 
-
-
-        // =====================================
-        // WAIT FOR SONGS
-        // =====================================
+        console.log(`Searching for ${songName}`);
 
         await page.waitForSelector(
-
-            "ytmusic-responsive-list-item-renderer",
-
+            "ytmusic-responsive-list-item-renderer a[href*='watch']",
             {
-                timeout: 15000
+                timeout: 30000
             }
         );
 
-
-
-        // =====================================
-        // SMALL WAIT
-        // =====================================
-
-        await new Promise(resolve =>
-            setTimeout(resolve, 3000)
+        const songs = await page.$$(
+            "ytmusic-responsive-list-item-renderer a[href*='watch']"
         );
 
+        if (songs.length > 0) {
 
+            await songs[0].click();
 
-        // =====================================
-        // CLICK FIRST SONG
-        // =====================================
+            console.log("Playing song...");
 
-        await page.evaluate(() => {
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
-            const firstSong =
-                document.querySelector(
+            await skipAds(page);
 
-                    "ytmusic-responsive-list-item-renderer a"
-                );
+        } else {
 
-            if (firstSong) {
-
-                firstSong.click();
-            }
-        });
-
-
-
-        console.log(
-            "Playing Music..."
-        );
-
-
-
-        // =====================================
-        // WAIT PLAYER
-        // =====================================
-
-        await new Promise(resolve =>
-            setTimeout(resolve, 5000)
-        );
-
-
-
-        // =====================================
-        // FORCE PLAY
-        // =====================================
-
-        await page.evaluate(() => {
-
-            const video =
-                document.querySelector("video");
-
-            if (video) {
-
-                video.play();
-            }
-        });
-
-
-
-        // =====================================
-        // AUTO SKIP ADS
-        // =====================================
-
-        setInterval(async () => {
-
-            try {
-
-                // SKIP BUTTON
-
-                const skipButton =
-                    await page.$(
-
-                        ".ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button"
-                    );
-
-                if (skipButton) {
-
-                    await skipButton.click();
-
-                    console.log(
-                        "Ad skipped"
-                    );
-                }
-
-
-
-                // CLOSE OVERLAY ADS
-
-                const overlay =
-                    await page.$(
-
-                        ".ytp-ad-overlay-close-button"
-                    );
-
-                if (overlay) {
-
-                    await overlay.click();
-
-                    console.log(
-                        "Overlay closed"
-                    );
-                }
-
-
-
-                // FAST FORWARD ADS
-
-                const adShowing =
-                    await page.evaluate(() => {
-
-                        return document.querySelector(
-                            ".ad-showing"
-                        ) !== null;
-                    });
-
-                if (adShowing) {
-
-                    await page.evaluate(() => {
-
-                        const video =
-                            document.querySelector(
-                                "video"
-                            );
-
-                        if (video) {
-
-                            video.playbackRate = 16;
-                        }
-                    });
-
-                } else {
-
-                    await page.evaluate(() => {
-
-                        const video =
-                            document.querySelector(
-                                "video"
-                            );
-
-                        if (video) {
-
-                            video.playbackRate = 1;
-                        }
-                    });
-                }
-
-            } catch (error) {
-
-                console.log(
-                    "Ad skip error:",
-                    error.message
-                );
-            }
-
-        }, 1500);
-
-
+            console.log("No songs found");
+        }
 
     } catch (error) {
 
-        console.log(
-            "Play Music Error:",
-            error.message
-        );
+        console.log("YouTube Error:", error);
     }
 };
 

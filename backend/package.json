@@ -26,8 +26,7 @@
     "nodemailer": "^8.0.7",
     "nodemon": "^3.1.10",
     "open": "^11.0.0",
-    "puppeteer": "^24.43.0",
-    "puppeteer-core": "^24.43.0",
+    "puppeteer": "^24.43.1",
     "zod": "^4.3.6"
   }
 }

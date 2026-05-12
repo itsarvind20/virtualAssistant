@@ -1,65 +1,74 @@
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 
 const playYouTubeVideo = async (songName) => {
 
     try {
-
+// 
+        // Launch Browser
         const browser = await puppeteer.launch({
-
             headless: false,
-
-            executablePath:
-                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
 
             defaultViewport: null,
 
-            args: ["--start-maximized"]
-
+            args: [
+                "--start-maximized",
+                "--autoplay-policy=no-user-gesture-required"
+            ]
         });
 
+        // Open New Page
         const page = await browser.newPage();
 
+        // Create Search Query
         const query = `${songName} official audio`;
 
-        // Open YouTube Music search
+        console.log(`Searching for: ${query}`);
+
+        // Open YouTube Music Search
         await page.goto(
             `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
             {
-                waitUntil: "networkidle2"
+                waitUntil: "networkidle2",
+                timeout: 60000
             }
         );
 
-        console.log(`Searching for ${songName}...`);
+        // Wait for song results
+        await page.waitForSelector(
+            "ytmusic-responsive-list-item-renderer a[href*='watch']",
+            {
+                timeout: 30000
+            }
+        );
 
-        // Wait for YouTube Music results to load
-        await page.waitForSelector("a[href*='watch']", {
-            timeout: 15000
-        });
+        // Get all song links
+        const songs = await page.$$(
+            "ytmusic-responsive-list-item-renderer a[href*='watch']"
+        );
 
-        const songs = await page.$$("a[href*='watch']");
-
+        // If songs found
         if (songs.length > 0) {
 
-            await Promise.all([
-                page.waitForNavigation({
-                    waitUntil: "networkidle2",
-                    timeout: 15000
-                }).catch(() => null),
-                songs[0].click()
-            ]);
+            console.log("Song found. Playing now...");
 
-            console.log("First YouTube Music result clicked");
+            // Click first result
+            await songs[0].click();
+
+            // Wait for player to load
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            console.log(`Now Playing: ${songName}`);
 
         } else {
 
-            console.log("No songs found");
+            console.log("No songs found.");
         }
-
-        console.log(`Playing ${songName}`);
 
     } catch (error) {
 
-        console.log("YouTube Automation Error:", error);
+        console.log("YouTube Automation Error:");
+        console.log(error);
+
     }
 };
 

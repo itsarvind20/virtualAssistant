@@ -424,6 +424,8 @@ Rules:
       </footer>
     </div>
   );
+
+
 }
 
 export default Home;

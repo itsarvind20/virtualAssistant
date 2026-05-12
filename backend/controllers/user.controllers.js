@@ -3,7 +3,7 @@ import groqResponse from "../groq.js";
 import User from "../models/user.model.js";
 import moment from "moment";
 import executeCommand from "../commandExecutor.js";
-import sendMail from "../utils/playMusic.js";
+import playMusic from "../utils/playMusic.js";
 
 const cleanMusicQuery = (text = "", assistantName = "") => {
 
