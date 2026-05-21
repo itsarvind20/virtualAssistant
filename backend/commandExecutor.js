@@ -1,6 +1,5 @@
 import open from "open";
 import { exec } from "child_process";
-import playYouTubeVideo from "./functions/youtubePlayer.js";
 
 const executeCommand = async (type, userInput) => {
 

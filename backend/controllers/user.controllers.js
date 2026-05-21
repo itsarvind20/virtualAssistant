@@ -3,12 +3,161 @@ import groqResponse from "../groq.js";
 import User from "../models/user.model.js";
 import moment from "moment";
 import executeCommand from "../commandExecutor.js";
-import playMusic from "../utils/playMusic.js";
+import playMusic, { nextMusic, pauseMusic, resumeMusic, stopMusic } from "../utils/playMusic.js";
+import playFirstYoutubeVideo from "../utils/playYoutubeVideo.js";
+
+const MUSIC_TYPES = ["play-music", "youtube-music-play"];
+
+const DESKTOP_COMMAND_TYPES = [
+    "open-chrome",
+    "open-notepad",
+    "open-vscode",
+    "calculator-open"
+];
+
+const LOCAL_INTENT_TYPES = [
+    ...MUSIC_TYPES,
+    ...DESKTOP_COMMAND_TYPES,
+    "open-youtube",
+    "google-search",
+    "youtube-search",
+    "youtube-play",
+    "instagram-open",
+    "facebook-open",
+    "weather-show",
+    "get-time",
+    "get-date",
+    "get-day",
+    "get-month",
+    "pause-media",
+    "resume-media",
+    "next-media",
+    "cancel-command",
+    "end-conversation"
+];
+
+const escapeRegExp = (text = "") =>
+    String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const normalizeCommand = (text = "") =>
+    String(text)
+        .toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const stripAssistantName = (text = "", assistantName = "") => {
+
+    if (!assistantName) return String(text).trim();
+
+    return String(text)
+        .replace(new RegExp(`\\b${escapeRegExp(assistantName)}\\b`, "gi"), "")
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const isAiFailureResponse = (aiResult = {}) => {
+
+    const response = normalizeCommand(aiResult.response || "");
+
+    return aiResult.type === "general" &&
+        (
+            response.includes("something went wrong") ||
+            response.includes("couldn t understand") ||
+            response.includes("could not understand")
+        );
+};
+
+const hasMusicIntent = (text = "") => {
+
+    const normalized = normalizeCommand(text);
+
+    if (hasYoutubeVideoIntent(normalized)) return false;
+
+    return /\b(youtube music|music|song|songs|track|album|artist|playlist)\b/.test(normalized) ||
+        /\b(play|plau|listen to|put on)\b/.test(normalized);
+};
+
+const hasYoutubeVideoIntent = (text = "") => {
+
+    const normalized = normalizeCommand(text);
+
+    if (isOpenYoutubeOnly(normalized)) return false;
+
+    return (
+        /\b(search|find|play|playing|show)\b.*\b(youtube|you tube)\b/.test(normalized) ||
+        /\b(youtube|you tube)\b.*\b(search|find|play|playing|show)\b/.test(normalized) ||
+        (/\b(youtube|you tube)\b/.test(normalized) && /\b(video|videos)\b/.test(normalized))
+    ) && !/\byoutube music\b/.test(normalized);
+};
+
+const isOpenYoutubeOnly = (text = "") => {
+
+    const normalized = normalizeCommand(text);
+
+    return /^(please\s+)?(open|launch|start)\s+(youtube|you tube)(\s+(app|site|website))?$/.test(normalized);
+};
+
+const inferMusicQuery = (text = "", assistantName = "") => {
+
+    const assistantPattern = assistantName
+        ? new RegExp(`\\b${escapeRegExp(assistantName)}\\b`, "gi")
+        : null;
+
+    let query = String(text);
+
+    if (assistantPattern) {
+
+        query = query.replace(assistantPattern, "");
+    }
+
+    return query
+        .replace(/\b(please|can you|could you|would you)\b/gi, "")
+        .replace(/\b(play|plau|listen to|put on)\b/gi, "")
+        .replace(/\b(the )?(song|music|track)\b/gi, "")
+        .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const inferObviousCommandType = (text = "") => {
+
+    const normalized = normalizeCommand(text);
+
+    if (!normalized) return null;
+
+    if (/\b(stop|cancel|mute|never mind|nevermind)\b/.test(normalized)) return "cancel-command";
+    if (/\b(end conversation|end chat|finish conversation|close conversation|that is all|that s all|goodbye|bye|we are done|conversation over)\b/.test(normalized)) return "end-conversation";
+    if (/\b(next|skip|skip song|next song|next track)\b/.test(normalized)) return "next-media";
+    if (/\bpause\b/.test(normalized)) return "pause-media";
+    if (/^(play|resume|continue)$/.test(normalized) || /\b(resume|continue|play song|play music)\b/.test(normalized)) return "resume-media";
+
+    if (/\b(time|current time)\b/.test(normalized)) return "get-time";
+    if (/\b(date|today date)\b/.test(normalized)) return "get-date";
+    if (/\b(day|today day)\b/.test(normalized)) return "get-day";
+    if (/\b(month|current month)\b/.test(normalized)) return "get-month";
+
+    if (/\b(open|start|launch)\s+(chrome|google chrome)\b/.test(normalized)) return "open-chrome";
+    if (/\b(open|start|launch)\s+notepad\b/.test(normalized)) return "open-notepad";
+    if (/\b(open|start|launch)\s+(vs code|vscode|visual studio code)\b/.test(normalized)) return "open-vscode";
+    if (/\b(open|start|launch)\s+(calculator|calc)\b/.test(normalized)) return "calculator-open";
+
+    if (isOpenYoutubeOnly(normalized)) return "open-youtube";
+    if (/\b(open|start|launch)\s+instagram\b/.test(normalized)) return "instagram-open";
+    if (/\b(open|start|launch)\s+facebook\b/.test(normalized)) return "facebook-open";
+    if (/\b(weather|temperature|forecast)\b/.test(normalized)) return "weather-show";
+
+    if (hasYoutubeVideoIntent(normalized)) return "youtube-search";
+    if (/\byoutube\b/.test(normalized) && /\b(video|videos)\b/.test(normalized)) return "youtube-search";
+    if (/\b(google|search google|google search|search for)\b/.test(normalized)) return "google-search";
+
+    return null;
+};
 
 const cleanMusicQuery = (text = "", assistantName = "") => {
 
     const assistantPattern = assistantName
-        ? new RegExp(`\\b${assistantName}\\b`, "gi")
+        ? new RegExp(`\\b${escapeRegExp(assistantName)}\\b`, "gi")
         : null;
 
     let query = text;
@@ -20,10 +169,23 @@ const cleanMusicQuery = (text = "", assistantName = "") => {
 
     return query
         .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
-        .replace(/\bplay\b/gi, "")
+        .replace(/\b(play|plau)\b/gi, "")
         .replace(/\bsong\b/gi, "")
         .trim();
 };
+
+const cleanYoutubeQuery = (text = "", assistantName = "") =>
+    stripAssistantName(text, assistantName)
+        .replace(/\b(please|can you|could you|would you)\b/gi, "")
+        .replace(/\b(search|find|play|playing|open|show)\b/gi, "")
+        .replace(/\b(on|in)\s+(youtube|you tube)\b/gi, "")
+        .replace(/\b(youtube|you tube)\b/gi, "")
+        .replace(/\b(video|videos)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const formatTarget = (text = "", fallback = "that") =>
+    String(text).trim() || fallback;
 
 
 // ====================================
@@ -117,7 +279,7 @@ export const askToAssistant = async (req, res) => {
 
     try {
 
-        const { command, history = [], systemPrompt = "" } = req.body;
+        const { command, history = [], systemPrompt = "", localIntent = null } = req.body;
 
         if (!command) {
 
@@ -154,58 +316,179 @@ export const askToAssistant = async (req, res) => {
 
         const assistantName = user.assistantName;
 
+        const commandWithoutWakeWord =
+            stripAssistantName(command, assistantName);
+
+        const commandForAssistant =
+            commandWithoutWakeWord || command;
+
+        if (!commandWithoutWakeWord && normalizeCommand(command) === normalizeCommand(assistantName)) {
+
+            return res.status(200).json({
+
+                type: "general",
+                userInput: "",
+                response:
+                    `Yes, ${userName}?`
+            });
+        }
+
 
         // ====================================
         // AI RESPONSE
         // ====================================
 
-        const result = await groqResponse(
-            command,
-            assistantName,
-            userName,
-            history,
-            systemPrompt
-        );
-
-        console.log("RAW AI RESPONSE:", result);
-
-
-        // ====================================
-        // PARSE JSON
-        // ====================================
-
         let aiResult;
 
-        try {
+        if (
+            localIntent &&
+            LOCAL_INTENT_TYPES.includes(localIntent.type)
+        ) {
 
-            aiResult = JSON.parse(result);
+            aiResult = {
+                type: localIntent.type,
+                userInput: localIntent.userInput || commandForAssistant,
+                response: localIntent.response || "Done."
+            };
 
-        } catch (parseError) {
+        } else {
 
-            console.log(
-                "JSON Parse Error:",
-                parseError
+            const result = await groqResponse(
+                commandForAssistant,
+                assistantName,
+                userName,
+                history,
+                systemPrompt
             );
 
-            return res.status(200).json({
+            console.log("RAW AI RESPONSE:", result);
 
-                type: "general",
-                userInput: command,
-                response:
-                    "Sorry, I couldn't understand that properly."
-            });
+
+            // ====================================
+            // PARSE JSON
+            // ====================================
+
+            try {
+
+                aiResult = JSON.parse(result);
+
+            } catch (parseError) {
+
+                console.log(
+                    "JSON Parse Error:",
+                    parseError
+                );
+
+                return res.status(200).json({
+
+                    type: "general",
+                    userInput: commandForAssistant,
+                    response:
+                        "Sorry, I couldn't understand that properly."
+                });
+            }
         }
 
+
+        const obviousType = inferObviousCommandType(commandForAssistant);
+
+        const inferredMusicQuery = inferMusicQuery(commandForAssistant, assistantName);
+
+        const aiFailed = isAiFailureResponse(aiResult);
+
+        if (hasYoutubeVideoIntent(commandForAssistant)) {
+
+            const youtubeQuery =
+                cleanYoutubeQuery(commandForAssistant, assistantName) ||
+                commandForAssistant;
+
+            aiResult = {
+                ...aiResult,
+                type: "youtube-search",
+                userInput: youtubeQuery,
+                response: `Playing ${formatTarget(youtubeQuery, "the first result")} on YouTube.`
+            };
+
+        } else if (
+            (
+                !MUSIC_TYPES.includes(aiResult.type) ||
+                aiFailed
+            ) &&
+            hasMusicIntent(commandForAssistant) &&
+            inferredMusicQuery
+        ) {
+
+            aiResult = {
+                ...aiResult,
+                type: "play-music",
+                userInput: inferredMusicQuery,
+                response: `Playing ${formatTarget(inferredMusicQuery)} on YouTube Music.`
+            };
+
+        } else if (
+            aiFailed &&
+            obviousType
+        ) {
+
+            aiResult = {
+                ...aiResult,
+                type: obviousType,
+                userInput: commandForAssistant,
+                response: "Done."
+            };
+
+        } else if (aiFailed) {
+
+            aiResult = {
+                ...aiResult,
+                userInput: commandForAssistant,
+                response: "I heard you. Please try that again."
+            };
+
+        } else if (MUSIC_TYPES.includes(aiResult.type) && !hasMusicIntent(commandForAssistant)) {
+
+            aiResult = {
+                ...aiResult,
+                type: obviousType || "general",
+                userInput: commandForAssistant,
+                response: obviousType
+                    ? aiResult.response
+                    : "I heard you. How can I help with that?"
+            };
+
+        } else if (
+            obviousType &&
+            !MUSIC_TYPES.includes(obviousType) &&
+            MUSIC_TYPES.includes(aiResult.type)
+        ) {
+
+            aiResult.type = obviousType;
+            aiResult.userInput = commandForAssistant;
+        }
 
         const type = aiResult.type;
 
         if (
-            ["play-music", "youtube-music-play"].includes(type)
+            MUSIC_TYPES.includes(type)
         ) {
 
             aiResult.userInput =
                 cleanMusicQuery(aiResult.userInput, assistantName) ||
-                cleanMusicQuery(command, assistantName);
+                cleanMusicQuery(commandForAssistant, assistantName);
+
+            aiResult.response =
+                `Playing ${formatTarget(aiResult.userInput)} on YouTube Music.`;
+        }
+
+        if (["youtube-search", "youtube-play"].includes(type)) {
+
+            aiResult.userInput =
+                cleanYoutubeQuery(aiResult.userInput, assistantName) ||
+                cleanYoutubeQuery(commandForAssistant, assistantName) ||
+                commandForAssistant;
+
+            aiResult.response =
+                `Playing ${formatTarget(aiResult.userInput, "the first result")} on YouTube.`;
         }
 
 
@@ -270,6 +553,79 @@ export const askToAssistant = async (req, res) => {
                     response:
                         `Current month is ${moment().format("MMMM")}`
                 });
+
+
+            case "cancel-command":
+
+                await stopMusic();
+
+                return res.json({
+
+                    type,
+
+                    userInput: aiResult.userInput,
+
+                    response:
+                        "Stopped."
+                });
+
+
+            case "end-conversation":
+
+                return res.json({
+
+                    type,
+
+                    userInput: aiResult.userInput,
+
+                    response:
+                        "Conversation ended. Say my name when you need me again."
+                });
+
+
+            case "pause-media":
+
+                await pauseMusic();
+
+                return res.json({
+
+                    type,
+
+                    userInput: aiResult.userInput,
+
+                    response:
+                        "Paused."
+                });
+
+
+            case "resume-media":
+
+                await resumeMusic();
+
+                return res.json({
+
+                    type,
+
+                    userInput: aiResult.userInput,
+
+                    response:
+                        "Resuming."
+                });
+
+
+            case "next-media":
+
+                await nextMusic();
+
+                return res.json({
+
+                    type,
+
+                    userInput: aiResult.userInput,
+
+                    response:
+                        "Playing the next song."
+                });
                 
 
             // ====================================
@@ -307,13 +663,7 @@ export const askToAssistant = async (req, res) => {
             case "send-email":
 
 
-                if (
-                    [
-                        "open-chrome",
-                        "open-notepad",
-                        "open-vscode"
-                    ].includes(type)
-                ) {
+                if (DESKTOP_COMMAND_TYPES.includes(type)) {
 
                     await executeCommand(
                         type,
@@ -321,20 +671,30 @@ export const askToAssistant = async (req, res) => {
                     );
                 }
 
-            await playMusic(
-               aiResult.userInput
-            );
+                if (MUSIC_TYPES.includes(type)) {
 
-            return res.json({
+                    await playMusic(
+                        aiResult.userInput
+                    );
+                }
 
-               type,
+                if (["youtube-search", "youtube-play"].includes(type)) {
 
-               userInput:
-               aiResult.userInput,
+                    await playFirstYoutubeVideo(
+                        aiResult.userInput
+                    );
+                }
 
-               response:
-               aiResult.response
-            });
+                return res.json({
+
+                    type,
+
+                    userInput:
+                        aiResult.userInput,
+
+                    response:
+                        aiResult.response
+                });
 
 
             // ====================================

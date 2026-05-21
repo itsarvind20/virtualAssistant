@@ -1,255 +1,441 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { LogOut, Mic, Send, Settings } from "lucide-react";
+import { LogOut, Mic, Moon, Send, Settings } from "lucide-react";
+import AssistantOrb from "../components/AssistantOrb";
+import ListeningAnimation from "../components/ListeningAnimation";
+import VoiceVisualizer from "../components/VoiceVisualizer";
+import { AssistantProvider } from "../context/AssistantContext";
 import { userDataContext } from "../context/UserContext";
+import { ASSISTANT_STATES, useAssistantState } from "../hooks/useAssistantState";
+import { usePorcupineWakeWord } from "../hooks/usePorcupineWakeWord";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { useWakeWord } from "../hooks/useWakeWord";
+import { createAudioCommandRecorder, transcribeAudioCommand } from "../services/audioCommandRecorder";
+import { classifyLocalIntent, executeLocalBrowserAction, processCommand } from "../services/commandProcessor";
+import { abortTask, createTaskController, isInterruptCommand } from "../services/interruptService";
+import { createTtsService } from "../services/ttsService";
+import { normalizeSpeechText, requestMicrophonePermission } from "../utils/audioHelpers";
+import { createSilenceTimer } from "../utils/silenceDetection";
+import { isPorcupineConfigured } from "../services/speechConfig";
+
+const ACTIVE_TIMEOUT_MS = 6500;
+const FOLLOW_UP_TIMEOUT_MS = 45000;
 
 function Home() {
-  const { userData, serverUrl, setUserData, getGeminiResponse } =
-    useContext(userDataContext);
-
+  const { userData, serverUrl, setUserData } = useContext(userDataContext);
   const navigate = useNavigate();
-  const synth = window.speechSynthesis;
+  const assistant = useAssistantState();
 
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: `Hi ${userData?.name || "there"}! I'm ${
-        userData?.assistantName || "your assistant"
-      }. You can type or say my name to talk to me.`,
+      content: `Say "Hey ${userData?.assistantName || "Assistant"}" to wake me.`,
     },
   ]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
+  const [micReady, setMicReady] = useState(false);
+  const [micPaused, setMicPaused] = useState(false);
+  const [manualSleep, setManualSleep] = useState(false);
 
-  const recognitionRef = useRef(null);
-  const isSpeakingRef = useRef(false);
-  const isRecognitionActiveRef = useRef(false);
   const historyRef = useRef([]);
+  const taskControllerRef = useRef(createTaskController());
+  const ttsRef = useRef(null);
+  const activeCommandRef = useRef("");
+  const activeStateRef = useRef(assistant.state);
+  const silenceTimerRef = useRef(null);
+  const sessionTimerRef = useRef(null);
+  const recorderRef = useRef(createAudioCommandRecorder());
   const endRef = useRef(null);
 
   const assistantName = userData?.assistantName || "Assistant";
   const userName = userData?.name || "there";
-  const latestAssistantMessage =
-    [...messages].reverse().find((message) => message.role === "assistant")
-      ?.content || "";
 
-  const buildSystemPrompt = () =>
-    `
-You are ${assistantName}, a helpful voice and chat assistant.
+  useEffect(() => {
+    activeStateRef.current = assistant.state;
+  }, [assistant.state]);
 
-User profile:
-- Name: ${userData?.name || "Unknown"}
-- Email: ${userData?.email || "Unknown"}
+  useEffect(() => {
+    ttsRef.current = createTtsService();
 
-Rules:
-- Reply in short, natural sentences because responses may be spoken aloud.
-- Remember the conversation history and refer back when useful.
-- If the user asks for an app, website, search, YouTube, date, or time action, classify it with the right action type.
-- For music, always use YouTube Music.
-- If you do not know something, say so honestly.
-`.trim();
+    return () => {
+      ttsRef.current?.cancel();
+    };
+  }, []);
+
+  const addMessage = useCallback((role, content) => {
+    setMessages((prev) => [...prev, { role, content }]);
+  }, []);
+
+  const buildSystemPrompt = useCallback(
+    () =>
+      `
+You are ${assistantName}, a concise real-time voice assistant for ${userName}.
+Classify commands accurately, keep replies short, and never claim an action happened if it failed.
+For interruption commands, respond with a short acknowledgement.
+`.trim(),
+    [assistantName, userName]
+  );
+
+  const speak = useCallback(
+    async (text, nextState = ASSISTANT_STATES.SLEEPING) => {
+      if (!text) return;
+
+      assistant.setState(ASSISTANT_STATES.SPEAKING);
+      setMicPaused(true);
+
+      await ttsRef.current?.speak(text, {
+        onEnd: () => {
+          setMicPaused(false);
+          assistant.setState(nextState);
+        },
+        onError: () => {
+          setMicPaused(false);
+          assistant.setState(nextState);
+        },
+      });
+    },
+    [assistant]
+  );
+
+  const clearSessionTimer = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+  }, []);
+
+  const startFollowUpSession = useCallback(() => {
+    clearSessionTimer();
+
+    sessionTimerRef.current = setTimeout(() => {
+      activeCommandRef.current = "";
+      setInterimText("");
+      assistant.setState(ASSISTANT_STATES.SLEEPING);
+    }, FOLLOW_UP_TIMEOUT_MS);
+  }, [assistant, clearSessionTimer]);
+
+  const handleInterrupt = useCallback(async () => {
+    abortTask(taskControllerRef);
+    ttsRef.current?.cancel();
+    recorderRef.current.cancel();
+    activeCommandRef.current = "";
+    silenceTimerRef.current?.clear();
+    setInterimText("");
+    setMicPaused(false);
+    assistant.setState(ASSISTANT_STATES.IDLE);
+
+    try {
+      await processCommand({
+        command: "stop",
+        serverUrl,
+        history: historyRef.current,
+        systemPrompt: buildSystemPrompt(),
+        signal: taskControllerRef.current.signal,
+      });
+    } catch {
+      // Cancellation should be quiet. The local state has already stopped.
+    }
+
+    addMessage("assistant", "Stopped.");
+  }, [addMessage, assistant, buildSystemPrompt, serverUrl]);
+
+  const endConversation = useCallback(async (response = "Conversation ended. Say my name when you need me again.") => {
+    abortTask(taskControllerRef);
+    ttsRef.current?.cancel();
+    recorderRef.current.cancel();
+    silenceTimerRef.current?.clear();
+    clearSessionTimer();
+    activeCommandRef.current = "";
+    historyRef.current = [];
+    setInterimText("");
+    setMicPaused(false);
+    setManualSleep(false);
+    assistant.setState(ASSISTANT_STATES.SLEEPING);
+    addMessage("assistant", response);
+    await speak(response, ASSISTANT_STATES.SLEEPING);
+  }, [addMessage, assistant, clearSessionTimer, speak]);
+
+  const runCommand = useCallback(
+    async (rawCommand) => {
+      const command = normalizeSpeechText(rawCommand);
+
+      if (!command) {
+        assistant.setState(ASSISTANT_STATES.SLEEPING);
+        return;
+      }
+
+      if (isInterruptCommand(command)) {
+        await handleInterrupt();
+        return;
+      }
+
+      const localIntent = classifyLocalIntent(command);
+
+      if (localIntent?.type === "end-conversation") {
+        addMessage("user", command);
+        await endConversation(localIntent.response);
+        return;
+      }
+
+      if (localIntent?.type === "sleep-assistant") {
+        addMessage("user", command);
+        addMessage("assistant", localIntent.response);
+        await speak(localIntent.response, ASSISTANT_STATES.SLEEPING);
+        return;
+      }
+
+      silenceTimerRef.current?.clear();
+      activeCommandRef.current = "";
+      setInterimText("");
+      assistant.setState(ASSISTANT_STATES.THINKING);
+      addMessage("user", command);
+
+      const previousHistory = historyRef.current.slice(-20);
+      const nextHistory = [...previousHistory, { role: "user", content: command }].slice(-20);
+
+      try {
+        const controller = abortTask(taskControllerRef);
+        const data = await processCommand({
+          command,
+          serverUrl,
+          history: previousHistory,
+          systemPrompt: buildSystemPrompt(),
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) return;
+
+        executeLocalBrowserAction(data || {});
+
+        const response = data?.response || "I did not get a clear answer.";
+        historyRef.current = [...nextHistory, { role: "assistant", content: response }].slice(-20);
+        addMessage("assistant", response);
+        await speak(response, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+      } catch (error) {
+        if (error.name === "CanceledError" || error.name === "AbortError") return;
+
+        const response = "I had trouble completing that.";
+        addMessage("assistant", response);
+        await speak(response, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+      }
+    },
+    [addMessage, assistant, buildSystemPrompt, endConversation, handleInterrupt, serverUrl, speak, startFollowUpSession]
+  );
+
+  const finishVoiceCommand = useCallback(async () => {
+    const browserTranscript = activeCommandRef.current;
+
+    silenceTimerRef.current?.clear();
+    activeCommandRef.current = "";
+    setInterimText("");
+    assistant.setState(ASSISTANT_STATES.THINKING);
+
+    try {
+      const controller = abortTask(taskControllerRef);
+      const audioBlob = await recorderRef.current.stop();
+      const cloudTranscript = await transcribeAudioCommand({
+        serverUrl,
+        audioBlob,
+        signal: controller.signal,
+      }).catch(() => "");
+      const command = cloudTranscript || browserTranscript;
+
+      await runCommand(command);
+    } catch (error) {
+      if (error.name === "CanceledError" || error.name === "AbortError") return;
+
+      await runCommand(browserTranscript);
+    }
+  }, [assistant, runCommand, serverUrl]);
+
+  const enterListeningMode = useCallback(
+    (seedCommand = "") => {
+      setManualSleep(false);
+      clearSessionTimer();
+      assistant.setState(ASSISTANT_STATES.WAKING);
+      activeCommandRef.current = seedCommand;
+      setInterimText(seedCommand);
+
+      window.setTimeout(() => {
+        if (seedCommand) {
+          runCommand(seedCommand);
+          return;
+        }
+
+        assistant.setState(ASSISTANT_STATES.LISTENING);
+        recorderRef.current.start().catch((error) => {
+          assistant.setError(error.message || "Command recorder unavailable.");
+        });
+        silenceTimerRef.current?.clear();
+        silenceTimerRef.current = createSilenceTimer({
+          timeoutMs: ACTIVE_TIMEOUT_MS,
+          onTimeout: finishVoiceCommand,
+        });
+        silenceTimerRef.current.reset();
+      }, 250);
+    },
+    [assistant, clearSessionTimer, finishVoiceCommand, runCommand]
+  );
+
+  const wakeWord = useWakeWord({
+    assistantName,
+    onWake: (phrase) => {
+      assistant.setLastWakePhrase(phrase);
+    },
+  });
+
+  const porcupineWake = usePorcupineWakeWord({
+    enabled:
+      micReady &&
+      !manualSleep &&
+      isPorcupineConfigured() &&
+      [ASSISTANT_STATES.SLEEPING, ASSISTANT_STATES.IDLE].includes(assistant.state),
+    assistantName,
+    onWake: (phrase) => {
+      assistant.setLastWakePhrase(phrase);
+      enterListeningMode();
+    },
+    onError: (error) => {
+      assistant.setError(error?.message || "Porcupine wake word unavailable.");
+    },
+  });
+
+  const handleSpeechResult = useCallback(
+    (text) => {
+      const normalized = normalizeSpeechText(text);
+      const currentState = activeStateRef.current;
+
+      if (!normalized) return;
+
+      if (isInterruptCommand(normalized) && currentState !== ASSISTANT_STATES.SLEEPING) {
+        handleInterrupt();
+        return;
+      }
+
+      if ([ASSISTANT_STATES.SLEEPING, ASSISTANT_STATES.IDLE].includes(currentState)) {
+        if (currentState === ASSISTANT_STATES.IDLE) {
+          enterListeningMode();
+          activeCommandRef.current = normalized;
+          setInterimText(normalized);
+          return;
+        }
+
+        const wake = wakeWord.detect(normalized);
+
+        if (wake) {
+          enterListeningMode(wake.trailingCommand);
+        }
+
+        return;
+      }
+
+      if (currentState === ASSISTANT_STATES.LISTENING) {
+        activeCommandRef.current = `${activeCommandRef.current} ${normalized}`.trim();
+        setInterimText(activeCommandRef.current);
+        silenceTimerRef.current?.reset();
+      }
+    },
+    [enterListeningMode, handleInterrupt, wakeWord]
+  );
+
+  const handleInterim = useCallback((text) => {
+    if (activeStateRef.current === ASSISTANT_STATES.LISTENING) {
+      setInterimText(text);
+      silenceTimerRef.current?.reset();
+    }
+  }, []);
+
+  const speech = useSpeechRecognition({
+    enabled: micReady && !manualSleep,
+    paused:
+      micPaused ||
+      (
+        porcupineWake.active &&
+        [ASSISTANT_STATES.SLEEPING, ASSISTANT_STATES.IDLE].includes(assistant.state)
+      ),
+    onResult: handleSpeechResult,
+    onInterim: handleInterim,
+    onError: (event) => {
+      assistant.setError(event?.message || event?.error || "Microphone error");
+    },
+  });
+
+  const setAssistantState = assistant.setState;
+  const setAssistantError = assistant.setError;
+
+  useEffect(() => {
+    const controller = taskControllerRef.current;
+
+    requestMicrophonePermission()
+      .then(() => {
+        setMicReady(true);
+        setAssistantState(ASSISTANT_STATES.SLEEPING);
+      })
+      .catch((error) => {
+        setAssistantError(error.message || "Microphone permission is required.");
+        setAssistantState(ASSISTANT_STATES.IDLE);
+      });
+
+    return () => {
+      silenceTimerRef.current?.clear();
+      clearSessionTimer();
+      recorderRef.current.cancel();
+      controller?.abort();
+    };
+  }, [clearSessionTimer, setAssistantError, setAssistantState]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages]);
 
-  const addMessage = (role, content) => {
-    setMessages((prev) => [...prev, { role, content }]);
-  };
+  const sendMessage = useCallback(
+    async (text = input) => {
+      const command = text.trim();
 
-  const stopRecognition = () => {
-    try {
-      recognitionRef.current?.stop();
-      isRecognitionActiveRef.current = false;
-    } catch {
-      // Browser speech recognition can throw when it is already stopped.
-    }
-  };
+      if (!command) return;
 
-  const startRecognition = () => {
-    if (!recognitionRef.current || isRecognitionActiveRef.current) return;
+      setInput("");
+      await runCommand(command);
+    },
+    [input, runCommand]
+  );
 
-    try {
-      recognitionRef.current.start();
-      isRecognitionActiveRef.current = true;
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const sleepAssistant = useCallback(() => {
+    abortTask(taskControllerRef);
+    ttsRef.current?.cancel();
+    silenceTimerRef.current?.clear();
+    clearSessionTimer();
+    recorderRef.current.cancel();
+    activeCommandRef.current = "";
+    setInterimText("");
+    setMicPaused(false);
+    setManualSleep(true);
+    assistant.setState(ASSISTANT_STATES.SLEEPING);
+    addMessage("assistant", "Sleeping. Press the mic button to wake me.");
+  }, [addMessage, assistant, clearSessionTimer]);
 
-  const speak = (text) => {
-    if (!text) return;
+  const wakeAssistantManually = useCallback(() => {
+    setManualSleep(false);
 
-    synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
-    utterance.rate = 1;
-    utterance.pitch = 1;
-
-    isSpeakingRef.current = true;
-    utterance.onstart = stopRecognition;
-    utterance.onend = () => {
-      isSpeakingRef.current = false;
-      setTimeout(startRecognition, 600);
-    };
-
-    synth.speak(utterance);
-  };
-
-  const cleanMusicQuery = (text = "") =>
-    text
-      .replace(new RegExp(`\\b${assistantName}\\b`, "gi"), "")
-      .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
-      .replace(/\bplay\b/gi, "")
-      .replace(/\bsong\b/gi, "")
-      .trim();
-
-  const openYoutubeMusic = (song) => {
-    const query = cleanMusicQuery(song);
-
-    if (!query) {
-      return "Tell me which song you want me to play.";
-    }
-
-    window.open(
-      `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
-      "_blank"
-    );
-
-    return `Opening ${query} on YouTube Music.`;
-  };
-
-  const runBrowserAction = async ({ type, userInput }, originalMessage = "") => {
-    const actionInput = userInput || originalMessage;
-    const encodedInput = encodeURIComponent(actionInput || "");
-
-    if (type === "google-search") {
-      window.open(`https://www.google.com/search?q=${encodedInput}`, "_blank");
-    }
-
-    if (type === "youtube-search" || type === "youtube-play") {
-      window.open(
-        `https://www.youtube.com/results?search_query=${encodedInput}`,
-        "_blank"
-      );
-    }
-
-    if (type === "play-music" || type === "youtube-music-play") {
-      return openYoutubeMusic(actionInput);
-    }
-
-    if (type === "open-youtube") {
-      window.open("https://www.youtube.com", "_blank");
-    }
-
-    if (type === "calculator-open") {
-      window.open("https://www.google.com/search?q=calculator", "_blank");
-    }
-
-    if (type === "instagram-open") {
-      window.open("https://www.instagram.com", "_blank");
-    }
-
-    if (type === "facebook-open") {
-      window.open("https://www.facebook.com", "_blank");
-    }
-
-    if (type === "weather-show") {
-      window.open("https://www.google.com/search?q=weather", "_blank");
-    }
-
-    return "";
-  };
-
-  const askAssistant = async (message) => {
-    const previousHistory = historyRef.current.slice(-20);
-    const nextHistory = [
-      ...previousHistory,
-      { role: "user", content: message },
-    ].slice(-20);
-
-    const data = await getGeminiResponse(
-      message,
-      previousHistory,
-      buildSystemPrompt()
-    );
-
-    const response =
-      data?.response || "Sorry, I could not understand that properly.";
-
-    historyRef.current = [
-      ...nextHistory,
-      { role: "assistant", content: response },
-    ].slice(-20);
-
-    const actionMessage = await runBrowserAction(data || {}, message);
-
-    if (actionMessage) {
-      historyRef.current = [
-        ...nextHistory,
-        { role: "assistant", content: actionMessage },
-      ].slice(-20);
-
-      return actionMessage;
-    }
-
-    return response;
-  };
-
-  const sendMessage = async (text = input) => {
-    const message = text.trim();
-    if (!message || loading) return;
-
-    addMessage("user", message);
-    setInput("");
-
-    setLoading(true);
-
-    try {
-      const response = await askAssistant(message);
-      addMessage("assistant", response);
-      speak(response);
-    } catch (error) {
-      console.log(error);
-      addMessage("assistant", "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVoiceCommand = async (text) => {
-    const wakeWord = assistantName.toLowerCase();
-
-    if (!text.includes(wakeWord)) {
-      if (text.includes("open google")) {
-        window.open("https://www.google.com", "_blank");
-        speak("Opening Google.");
-      }
-
-      if (text.includes("open youtube")) {
-        window.open("https://www.youtube.com", "_blank");
-        speak("Opening YouTube.");
-      }
-
-      if (text.startsWith("play ")) {
-        await sendMessage(text);
-      }
+    if (!micReady) {
+      requestMicrophonePermission()
+        .then(() => {
+          setMicReady(true);
+          enterListeningMode();
+        })
+        .catch((error) => {
+          assistant.setError(error.message || "Microphone permission is required.");
+        });
 
       return;
     }
 
-    const command = text.replace(wakeWord, "").trim();
-
-    if (!command) {
-      speak(`Yes, ${userName}?`);
-      return;
-    }
-
-    await sendMessage(command);
-  };
+    enterListeningMode();
+  }, [assistant, enterListeningMode, micReady]);
 
   const handleLogOut = async () => {
     try {
@@ -264,168 +450,139 @@ Rules:
     }
   };
 
-  useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+  const latestAssistantMessage =
+    [...messages].reverse().find((message) => message.role === "assistant")?.content || "";
 
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = "en-IN";
-
-    recognition.onstart = () => {
-      setListening(true);
-      isRecognitionActiveRef.current = true;
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-      isRecognitionActiveRef.current = false;
-
-      if (!isSpeakingRef.current) {
-        setTimeout(startRecognition, 900);
-      }
-    };
-
-    recognition.onerror = () => {
-      setListening(false);
-      isRecognitionActiveRef.current = false;
-
-      if (!isSpeakingRef.current) {
-        setTimeout(startRecognition, 1200);
-      }
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript
-        .toLowerCase()
-        .trim();
-
-      handleVoiceCommand(transcript);
-    };
-
-    recognitionRef.current = recognition;
-
-    const greetAndStart = () => {
-      speak(`Hello ${userName}. Say ${assistantName} to wake me up.`);
-      startRecognition();
-    };
-
-    document.addEventListener("click", greetAndStart, { once: true });
-
-    return () => {
-      document.removeEventListener("click", greetAndStart);
-      stopRecognition();
-      synth.cancel();
-    };
-  }, [assistantName, userName]);
-
-  return (
-    <div className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-gradient-to-t from-black to-[#02023d] px-4 text-white">
-      <div className="absolute right-4 top-4 flex gap-3 sm:right-5 sm:top-5">
-        <button
-          aria-label="Customize assistant"
-          className="grid h-11 w-11 place-items-center rounded-full bg-white text-black shadow-lg transition hover:scale-105 sm:h-auto sm:w-auto sm:px-5 sm:py-3"
-          onClick={() => navigate("/customize")}
-        >
-          <Settings size={20} />
-          <span className="ml-2 hidden font-semibold sm:inline">Customize</span>
-        </button>
-
-        <button
-          aria-label="Logout"
-          className="grid h-11 w-11 place-items-center rounded-full bg-white text-black shadow-lg transition hover:scale-105 sm:h-auto sm:w-auto sm:px-5 sm:py-3"
-          onClick={handleLogOut}
-        >
-          <LogOut size={20} />
-          <span className="ml-2 hidden font-semibold sm:inline">Logout</span>
-        </button>
-      </div>
-
-      <main className="flex min-h-0 w-full max-w-[760px] flex-1 flex-col items-center justify-center gap-3 pt-20 pb-28 sm:gap-4 sm:pt-20 sm:pb-24">
-        <div className="h-[220px] w-[185px] overflow-hidden rounded-3xl border border-white/20 shadow-2xl sm:h-[280px] sm:w-[235px] lg:h-[300px] lg:w-[250px]">
-          <img
-            alt={assistantName}
-            className="h-full w-full object-cover"
-            src={userData?.assistantImage}
-          />
-        </div>
-
-        <div className="flex max-w-full flex-col items-center gap-1 text-center">
-          <h1 className="max-w-[90vw] break-words text-2xl font-bold leading-tight text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.28)] sm:max-w-[560px] sm:text-3xl">
-            {assistantName}
-          </h1>
-          <p className="text-sm font-medium text-white/65">
-            {listening ? "Listening..." : `Say "${assistantName}" to wake me`}
-          </p>
-        </div>
-
-        <h2 className="min-h-[58px] max-w-[700px] px-2 text-center text-base font-light leading-7 text-white/95 sm:min-h-[72px] sm:text-lg sm:leading-8">
-          {loading ? "Thinking..." : latestAssistantMessage}
-        </h2>
-
-        <div className="flex h-[44px] items-center justify-center">
-          {listening && (
-            <div className="flex h-[40px] items-end gap-2">
-              <span className="h-3 w-2 animate-bounce rounded-full bg-white" />
-              <span
-                className="h-6 w-2 animate-bounce rounded-full bg-white"
-                style={{ animationDelay: "0.1s" }}
-              />
-              <span
-                className="h-10 w-2 animate-bounce rounded-full bg-white"
-                style={{ animationDelay: "0.2s" }}
-              />
-              <span
-                className="h-6 w-2 animate-bounce rounded-full bg-white"
-                style={{ animationDelay: "0.3s" }}
-              />
-              <span
-                className="h-3 w-2 animate-bounce rounded-full bg-white"
-                style={{ animationDelay: "0.4s" }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div ref={endRef} />
-      </main>
-
-      <footer className="absolute bottom-4 left-1/2 flex w-[calc(100%-32px)] max-w-[720px] -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-white/95 p-2 shadow-2xl">
-        <input
-          className="min-w-0 flex-1 rounded-full bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-slate-500"
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") sendMessage();
-          }}
-          placeholder={`Ask ${assistantName} anything...`}
-          value={input}
-        />
-        <button
-          aria-label="Send message"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white transition hover:bg-slate-800"
-          onClick={() => sendMessage()}
-        >
-          <Send size={18} />
-        </button>
-        <button
-          aria-label="Start voice listening"
-          className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition ${
-            listening
-              ? "bg-rose-600 hover:bg-rose-700"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-          onClick={startRecognition}
-        >
-          <Mic size={18} />
-        </button>
-      </footer>
-    </div>
+  const assistantContextValue = useMemo(
+    () => ({
+      ...assistant,
+      micReady,
+      manualSleep,
+      speechSupported: speech.supported,
+      wakePhrases: wakeWord.phrases,
+      interrupt: handleInterrupt,
+    }),
+    [assistant, handleInterrupt, manualSleep, micReady, speech.supported, wakeWord.phrases]
   );
 
+  return (
+    <AssistantProvider value={assistantContextValue}>
+      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.2),transparent_28%),radial-gradient(circle_at_80%_15%,rgba(168,85,247,0.18),transparent_30%),linear-gradient(135deg,#020617,#07111f_45%,#050816)] px-4 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px]" />
 
+        <div className="relative z-30 flex items-center justify-between py-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-cyan-100/60">assistant os</p>
+            <h1 className="mt-1 text-2xl font-semibold">{assistantName}</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Sleep"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              onClick={sleepAssistant}
+            >
+              <Moon size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Customize assistant"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              onClick={() => navigate("/customize")}
+            >
+              <Settings size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Logout"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              onClick={handleLogOut}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
+
+        <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5 pb-28 pt-2">
+          <AssistantOrb state={assistant.state} image={userData?.assistantImage} name={assistantName} />
+
+          <div className="text-center">
+              <p className="text-sm uppercase tracking-[0.28em] text-cyan-100/60">
+              {manualSleep
+                ? "manual sleep mode"
+                : micReady
+                  ? "continuous wake monitoring"
+                  : "microphone permission needed"}
+            </p>
+            <h2 className="mt-2 max-w-3xl text-balance text-xl font-medium leading-8 text-white/90 sm:text-2xl">
+              {latestAssistantMessage}
+            </h2>
+          </div>
+
+          <ListeningAnimation active={assistant.isListening || assistant.isSpeaking || assistant.isThinking} />
+
+          <div className="grid w-full max-w-4xl gap-4 md:grid-cols-[1.1fr_0.9fr]">
+            <VoiceVisualizer text={interimText} state={assistant.state} />
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+              <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/60">wake phrases</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {wakeWord.phrases.slice(0, 5).map((phrase) => (
+                  <span key={phrase} className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-sm">
+                    {phrase}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-4 text-sm text-white/65">
+                {assistant.error ||
+                  (manualSleep
+                    ? "Microphone is paused. Press the mic button to wake me."
+                    : null) ||
+                  (speech.active
+                    ? `Listening with ${speech.provider}.`
+                    : porcupineWake.active
+                      ? "Offline wake word engine is listening."
+                      : "Recognition is restarting or waiting for permission.")}
+              </p>
+            </div>
+          </div>
+
+          <div ref={endRef} />
+        </main>
+
+        <footer className="absolute bottom-4 left-1/2 z-30 flex w-[calc(100%-32px)] max-w-4xl -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-black/50 p-2 shadow-2xl backdrop-blur-xl">
+          <button
+            type="button"
+            aria-label="Start listening"
+            title="Start listening"
+            className={`grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full transition hover:scale-105 ${
+              speech.active ? "bg-emerald-500" : "bg-slate-700 hover:bg-slate-600"
+            }`}
+            onClick={wakeAssistantManually}
+          >
+            <Mic size={18} />
+          </button>
+          <input
+            className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/40"
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") sendMessage();
+            }}
+            placeholder={`Type a command, or say "Hey ${assistantName}"...`}
+            value={input}
+          />
+          <button
+            type="button"
+            aria-label="Send message"
+            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cyan-300 text-black transition hover:bg-cyan-200"
+            onClick={() => sendMessage()}
+          >
+            <Send size={18} />
+          </button>
+        </footer>
+      </div>
+    </AssistantProvider>
+  );
 }
 
 export default Home;

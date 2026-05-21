@@ -1,1 +1,51 @@
 @import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #020617;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@keyframes voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+
+  50% {
+    transform: scaleY(1.25);
+  }
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-voice-bar {
+  animation: voice-bar 900ms ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.animate-wave {
+  animation: wave 1200ms ease-in-out infinite;
+  transform-origin: center;
+}

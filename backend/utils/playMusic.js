@@ -1,6 +1,25 @@
 import puppeteer from "puppeteer";
 
+let musicBrowser = null;
+let musicPage = null;
+const pagesWithAdSkipper = new WeakSet();
+
+const runOnPlayer = async (script) => {
+
+    if (!musicPage || musicPage.isClosed()) {
+        return false;
+    }
+
+    await musicPage.evaluate(script).catch(() => {});
+
+    return true;
+};
+
 const skipAds = async (page) => {
+
+    if (pagesWithAdSkipper.has(page)) return;
+
+    pagesWithAdSkipper.add(page);
 
     const interval = setInterval(async () => {
 
@@ -47,24 +66,50 @@ const skipAds = async (page) => {
     }, 2000);
 };
 
+const getMusicPage = async () => {
+
+    if (
+        musicBrowser &&
+        musicBrowser.isConnected() &&
+        musicPage &&
+        !musicPage.isClosed()
+    ) {
+
+        return musicPage;
+    }
+
+    musicBrowser = await puppeteer.launch({
+        headless: false,
+
+        defaultViewport: null,
+
+        args: [
+            "--start-maximized",
+            "--autoplay-policy=no-user-gesture-required"
+        ]
+    });
+
+    musicBrowser.on("disconnected", () => {
+        musicBrowser = null;
+        musicPage = null;
+    });
+
+    const pages = await musicBrowser.pages();
+
+    musicPage = pages[0] || await musicBrowser.newPage();
+
+    return musicPage;
+};
+
 const playMusic = async (songName) => {
 
     try {
 
-        const browser = await puppeteer.launch({
-            headless: false,
-
-            defaultViewport: null,
-
-            args: [
-                "--start-maximized",
-                "--autoplay-policy=no-user-gesture-required"
-            ]
-        });
-
-        const page = await browser.newPage();
+        const page = await getMusicPage();
 
         const query = `${songName} official audio`;
+
+        await page.bringToFront();
 
         await page.goto(
             `https://music.youtube.com/search?q=${encodeURIComponent(query)}`,
@@ -105,6 +150,59 @@ const playMusic = async (songName) => {
 
         console.log("YouTube Error:", error);
     }
+};
+
+export const stopMusic = async () => {
+
+    return runOnPlayer(() => {
+        const video = document.querySelector("video");
+
+        if (video) {
+            video.pause();
+            video.currentTime = 0;
+        }
+    });
+};
+
+export const pauseMusic = async () => {
+
+    return runOnPlayer(() => {
+        document.querySelector("video")?.pause();
+    });
+};
+
+export const resumeMusic = async () => {
+
+    return runOnPlayer(() => {
+        document.querySelector("video")?.play()?.catch(() => {});
+    });
+};
+
+export const nextMusic = async () => {
+
+    return runOnPlayer(() => {
+        const selectors = [
+            "ytmusic-player-bar .next-button",
+            "tp-yt-paper-icon-button.next-button",
+            "button[aria-label='Next']",
+            "button[title='Next']"
+        ];
+
+        const nextButton = selectors
+            .map((selector) => document.querySelector(selector))
+            .find(Boolean);
+
+        if (nextButton) {
+            nextButton.click();
+            return;
+        }
+
+        const video = document.querySelector("video");
+
+        if (video) {
+            video.currentTime = video.duration || video.currentTime;
+        }
+    });
 };
 
 export default playMusic;
