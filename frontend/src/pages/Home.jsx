@@ -3,16 +3,27 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { LogOut, Mic, Moon, Send, Settings } from "lucide-react";
 import AssistantOrb from "../components/AssistantOrb";
+import CalendarPanel from "../components/CalendarPanel";
+import ConfirmationModal from "../components/ConfirmationModal";
 import ListeningAnimation from "../components/ListeningAnimation";
 import VoiceVisualizer from "../components/VoiceVisualizer";
 import { AssistantProvider } from "../context/AssistantContext";
-import { userDataContext } from "../context/UserContext";
+import { userDataContext } from "../context/userDataContext";
 import { ASSISTANT_STATES, useAssistantState } from "../hooks/useAssistantState";
+import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { usePorcupineWakeWord } from "../hooks/usePorcupineWakeWord";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { createAudioCommandRecorder, transcribeAudioCommand } from "../services/audioCommandRecorder";
-import { classifyLocalIntent, executeLocalBrowserAction, processCommand } from "../services/commandProcessor";
+import {
+  classifyLocalIntent,
+  executeCalendarIntent,
+  executeLocalBrowserAction,
+  isConfirmationResponse,
+  parseCalendarIntent,
+  prepareCalendarAction,
+  processCommand,
+} from "../services/commandProcessor";
 import { abortTask, createTaskController, isInterruptCommand } from "../services/interruptService";
 import { createTtsService } from "../services/ttsService";
 import { normalizeSpeechText, requestMicrophonePermission } from "../utils/audioHelpers";
@@ -38,6 +49,7 @@ function Home() {
   const [micReady, setMicReady] = useState(false);
   const [micPaused, setMicPaused] = useState(false);
   const [manualSleep, setManualSleep] = useState(false);
+  const [pendingCalendarAction, setPendingCalendarAction] = useState(null);
 
   const historyRef = useRef([]);
   const taskControllerRef = useRef(createTaskController());
@@ -51,6 +63,7 @@ function Home() {
 
   const assistantName = userData?.assistantName || "Assistant";
   const userName = userData?.name || "there";
+  const googleCalendar = useGoogleCalendar({ serverUrl, enabled: Boolean(userData) });
 
   useEffect(() => {
     activeStateRef.current = assistant.state;
@@ -122,6 +135,7 @@ For interruption commands, respond with a short acknowledgement.
     recorderRef.current.cancel();
     activeCommandRef.current = "";
     silenceTimerRef.current?.clear();
+    clearSessionTimer();
     setInterimText("");
     setMicPaused(false);
     assistant.setState(ASSISTANT_STATES.IDLE);
@@ -139,7 +153,7 @@ For interruption commands, respond with a short acknowledgement.
     }
 
     addMessage("assistant", "Stopped.");
-  }, [addMessage, assistant, buildSystemPrompt, serverUrl]);
+  }, [addMessage, assistant, buildSystemPrompt, clearSessionTimer, serverUrl]);
 
   const endConversation = useCallback(async (response = "Conversation ended. Say my name when you need me again.") => {
     abortTask(taskControllerRef);
@@ -157,6 +171,104 @@ For interruption commands, respond with a short acknowledgement.
     await speak(response, ASSISTANT_STATES.SLEEPING);
   }, [addMessage, assistant, clearSessionTimer, speak]);
 
+  const runPreparedCalendarIntent = useCallback(
+    async (intent) => {
+      silenceTimerRef.current?.clear();
+      activeCommandRef.current = "";
+      setInterimText("");
+      assistant.setState(ASSISTANT_STATES.THINKING);
+
+      const controller = abortTask(taskControllerRef);
+
+      let prepared;
+
+      try {
+        prepared = await prepareCalendarAction({
+          intent,
+          serverUrl,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        const response =
+          error.response?.status === 401
+            ? "Google Calendar is not connected yet. Use the calendar panel to connect it first."
+            : error.response?.data?.message || "I had trouble preparing that calendar action.";
+        addMessage("assistant", response);
+        await speak(response, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+        return;
+      }
+
+      if (controller.signal.aborted || !prepared) return;
+
+      if (prepared.ready === false) {
+        const response = prepared.response || "I could not prepare that calendar action.";
+        addMessage("assistant", response);
+        await speak(response, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+        return;
+      }
+
+      if (prepared.confirmation) {
+        setPendingCalendarAction(prepared.confirmation);
+        addMessage("assistant", prepared.confirmation.message);
+        await speak(prepared.confirmation.message, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+        return;
+      }
+
+      const result = await executeCalendarIntent({
+        intent,
+        serverUrl,
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) return;
+
+      if (result.events) {
+        googleCalendar.setEvents(result.events);
+      } else {
+        googleCalendar.refresh().catch(() => {});
+      }
+
+      addMessage("assistant", result.response);
+      await speak(result.response, ASSISTANT_STATES.IDLE);
+      startFollowUpSession();
+    },
+    [addMessage, assistant, googleCalendar, serverUrl, speak, startFollowUpSession]
+  );
+
+  const confirmCalendarAction = useCallback(async () => {
+    if (!pendingCalendarAction?.intent) return;
+
+    const action = pendingCalendarAction;
+    setPendingCalendarAction(null);
+    assistant.setState(ASSISTANT_STATES.THINKING);
+
+    const controller = abortTask(taskControllerRef);
+    const result = await executeCalendarIntent({
+      intent: action.intent,
+      serverUrl,
+      signal: controller.signal,
+    });
+
+    if (controller.signal.aborted) return;
+
+    googleCalendar.refresh().catch(() => {});
+    addMessage("assistant", result.response);
+    await speak(result.response, ASSISTANT_STATES.IDLE);
+    startFollowUpSession();
+  }, [addMessage, assistant, googleCalendar, pendingCalendarAction, serverUrl, speak, startFollowUpSession]);
+
+  const cancelCalendarAction = useCallback(async () => {
+    setPendingCalendarAction(null);
+
+    const response = "Okay, I will not change your calendar.";
+    addMessage("assistant", response);
+    await speak(response, ASSISTANT_STATES.IDLE);
+    startFollowUpSession();
+  }, [addMessage, speak, startFollowUpSession]);
+
   const runCommand = useCallback(
     async (rawCommand) => {
       const command = normalizeSpeechText(rawCommand);
@@ -164,6 +276,22 @@ For interruption commands, respond with a short acknowledgement.
       if (!command) {
         assistant.setState(ASSISTANT_STATES.SLEEPING);
         return;
+      }
+
+      if (pendingCalendarAction) {
+        const confirmation = isConfirmationResponse(command);
+
+        if (confirmation === "confirm") {
+          addMessage("user", command);
+          await confirmCalendarAction();
+          return;
+        }
+
+        if (confirmation === "cancel") {
+          addMessage("user", command);
+          await cancelCalendarAction();
+          return;
+        }
       }
 
       if (isInterruptCommand(command)) {
@@ -183,6 +311,14 @@ For interruption commands, respond with a short acknowledgement.
         addMessage("user", command);
         addMessage("assistant", localIntent.response);
         await speak(localIntent.response, ASSISTANT_STATES.SLEEPING);
+        return;
+      }
+
+      const calendarIntent = parseCalendarIntent(command);
+
+      if (calendarIntent) {
+        addMessage("user", command);
+        await runPreparedCalendarIntent(calendarIntent);
         return;
       }
 
@@ -223,7 +359,20 @@ For interruption commands, respond with a short acknowledgement.
         startFollowUpSession();
       }
     },
-    [addMessage, assistant, buildSystemPrompt, endConversation, handleInterrupt, serverUrl, speak, startFollowUpSession]
+    [
+      addMessage,
+      assistant,
+      buildSystemPrompt,
+      cancelCalendarAction,
+      confirmCalendarAction,
+      endConversation,
+      handleInterrupt,
+      pendingCalendarAction,
+      runPreparedCalendarIntent,
+      serverUrl,
+      speak,
+      startFollowUpSession,
+    ]
   );
 
   const finishVoiceCommand = useCallback(async () => {
@@ -369,6 +518,7 @@ For interruption commands, respond with a short acknowledgement.
 
   useEffect(() => {
     const controller = taskControllerRef.current;
+    const recorder = recorderRef.current;
 
     requestMicrophonePermission()
       .then(() => {
@@ -383,7 +533,7 @@ For interruption commands, respond with a short acknowledgement.
     return () => {
       silenceTimerRef.current?.clear();
       clearSessionTimer();
-      recorderRef.current.cancel();
+      recorder.cancel();
       controller?.abort();
     };
   }, [clearSessionTimer, setAssistantError, setAssistantState]);
@@ -524,26 +674,37 @@ For interruption commands, respond with a short acknowledgement.
           <div className="grid w-full max-w-4xl gap-4 md:grid-cols-[1.1fr_0.9fr]">
             <VoiceVisualizer text={interimText} state={assistant.state} />
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-              <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/60">wake phrases</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {wakeWord.phrases.slice(0, 5).map((phrase) => (
-                  <span key={phrase} className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-sm">
-                    {phrase}
-                  </span>
-                ))}
+            <div className="grid gap-4">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+                <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/60">wake phrases</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {wakeWord.phrases.slice(0, 5).map((phrase) => (
+                    <span key={phrase} className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-sm">
+                      {phrase}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-4 text-sm text-white/65">
+                  {assistant.error ||
+                    (manualSleep
+                      ? "Microphone is paused. Press the mic button to wake me."
+                      : null) ||
+                    (speech.active
+                      ? `Listening with ${speech.provider}.`
+                      : porcupineWake.active
+                        ? "Offline wake word engine is listening."
+                        : "Recognition is restarting or waiting for permission.")}
+                </p>
               </div>
-              <p className="mt-4 text-sm text-white/65">
-                {assistant.error ||
-                  (manualSleep
-                    ? "Microphone is paused. Press the mic button to wake me."
-                    : null) ||
-                  (speech.active
-                    ? `Listening with ${speech.provider}.`
-                    : porcupineWake.active
-                      ? "Offline wake word engine is listening."
-                      : "Recognition is restarting or waiting for permission.")}
-              </p>
+
+              <CalendarPanel
+                connected={googleCalendar.connected}
+                error={googleCalendar.error}
+                events={googleCalendar.events}
+                loading={googleCalendar.loading}
+                onConnect={googleCalendar.connect}
+                onRefresh={() => googleCalendar.refresh()}
+              />
             </div>
           </div>
 
@@ -580,6 +741,13 @@ For interruption commands, respond with a short acknowledgement.
             <Send size={18} />
           </button>
         </footer>
+
+        <ConfirmationModal
+          message={pendingCalendarAction?.message}
+          onCancel={cancelCalendarAction}
+          onConfirm={confirmCalendarAction}
+          open={Boolean(pendingCalendarAction)}
+        />
       </div>
     </AssistantProvider>
   );

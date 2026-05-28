@@ -101,13 +101,59 @@ const getMusicPage = async () => {
     return musicPage;
 };
 
+const clickFirstMusicResult = async (page) => {
+
+    const clickedTopResult = await page.evaluate(() => {
+        const isVisible = (element) => {
+            const box = element?.getBoundingClientRect();
+
+            return Boolean(box && box.width > 0 && box.height > 0);
+        };
+
+        const clickFirstVisible = (selectors) => {
+            for (const selector of selectors) {
+                const element = Array.from(document.querySelectorAll(selector))
+                    .find(isVisible);
+
+                if (element) {
+                    element.click();
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        const topResult = document.querySelector("ytmusic-card-shelf-renderer");
+
+        if (!topResult) return false;
+
+        return clickFirstVisible([
+            "ytmusic-card-shelf-renderer ytmusic-play-button-renderer",
+            "ytmusic-card-shelf-renderer button[aria-label*='Play' i]",
+            "ytmusic-card-shelf-renderer a[href*='watch']"
+        ]);
+    });
+
+    if (clickedTopResult) return true;
+
+    const firstSongLink = await page.$(
+        "ytmusic-responsive-list-item-renderer a[href*='watch']"
+    );
+
+    if (!firstSongLink) return false;
+
+    await firstSongLink.click();
+    return true;
+};
+
 const playMusic = async (songName) => {
 
     try {
 
         const page = await getMusicPage();
 
-        const query = `${songName} official audio`;
+        const query = songName;
 
         await page.bringToFront();
 
@@ -121,19 +167,15 @@ const playMusic = async (songName) => {
         console.log(`Searching for ${songName}`);
 
         await page.waitForSelector(
-            "ytmusic-responsive-list-item-renderer a[href*='watch']",
+            "ytmusic-card-shelf-renderer, ytmusic-responsive-list-item-renderer a[href*='watch']",
             {
                 timeout: 30000
             }
         );
 
-        const songs = await page.$$(
-            "ytmusic-responsive-list-item-renderer a[href*='watch']"
-        );
+        const didClickResult = await clickFirstMusicResult(page);
 
-        if (songs.length > 0) {
-
-            await songs[0].click();
+        if (didClickResult) {
 
             console.log("Playing song...");
 

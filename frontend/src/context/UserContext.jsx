@@ -1,7 +1,6 @@
 import axios from "axios";
-import React, { createContext, useEffect, useState } from "react";
-
-export const userDataContext = createContext();
+import React, { useEffect, useState } from "react";
+import { userDataContext as UserDataContext } from "./userDataContext";
 
 function UserContext({ children }) {
   const serverUrl = "http://localhost:8000";
@@ -64,9 +63,9 @@ function UserContext({ children }) {
   };
 
   return (
-    <userDataContext.Provider value={value}>
+    <UserDataContext.Provider value={value}>
       {children}
-    </userDataContext.Provider>
+    </UserDataContext.Provider>
   );
 }
 

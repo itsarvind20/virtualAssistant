@@ -40,6 +40,34 @@ body {
   }
 }
 
+@keyframes signup-gradient-flow {
+  0% {
+    background-position: 0% 35%, 100% 20%, 50% 100%;
+  }
+
+  50% {
+    background-position: 100% 55%, 0% 45%, 40% 0%;
+  }
+
+  100% {
+    background-position: 0% 35%, 100% 20%, 50% 100%;
+  }
+}
+
+@keyframes signup-light-drift {
+  0% {
+    transform: translate3d(-8%, -4%, 0) rotate(-8deg);
+  }
+
+  50% {
+    transform: translate3d(8%, 4%, 0) rotate(-3deg);
+  }
+
+  100% {
+    transform: translate3d(-8%, -4%, 0) rotate(-8deg);
+  }
+}
+
 .animate-voice-bar {
   animation: voice-bar 900ms ease-in-out infinite;
   transform-origin: bottom;
@@ -48,4 +76,20 @@ body {
 .animate-wave {
   animation: wave 1200ms ease-in-out infinite;
   transform-origin: center;
+}
+
+.signup-ambient-gradient {
+  animation: signup-gradient-flow 18s ease-in-out infinite;
+  background-image:
+    linear-gradient(120deg, transparent 5%, rgba(34, 211, 238, 0.3) 26%, transparent 48%),
+    linear-gradient(60deg, transparent 10%, rgba(168, 85, 247, 0.22) 36%, transparent 58%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(7, 17, 31, 0.76), rgba(5, 8, 22, 0.94));
+  background-size: 170% 170%, 160% 160%, 100% 100%;
+}
+
+.signup-drift-band {
+  animation: signup-light-drift 22s ease-in-out infinite;
+  background:
+    linear-gradient(105deg, transparent 0%, rgba(34, 211, 238, 0.22) 28%, rgba(255, 255, 255, 0.08) 44%, transparent 68%),
+    linear-gradient(72deg, transparent 12%, rgba(168, 85, 247, 0.18) 48%, transparent 74%);
 }

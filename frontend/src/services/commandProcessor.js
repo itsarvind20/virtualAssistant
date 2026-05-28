@@ -1,5 +1,24 @@
 import axios from "axios";
 import { normalizeSpeechText } from "../utils/audioHelpers";
+import {
+  checkCalendarAvailability,
+  createBirthdayEvent,
+  createCalendarEvent,
+  createReminderEvent,
+  deleteCalendarEvent,
+  getEventsByRange,
+  getNextEvent,
+  getTodayEvents,
+  getWeekEvents,
+  searchCalendarEvents,
+  updateCalendarEvent,
+} from "./calendarService";
+import {
+  CALENDAR_INTENTS,
+  describeCalendarIntent,
+  isConfirmationResponse,
+  parseCalendarIntent,
+} from "./calendarIntentService";
 import { isInterruptCommand } from "./interruptService";
 
 const cleanQuery = (text = "", patterns = []) =>
@@ -142,6 +161,232 @@ export const executeLocalBrowserAction = ({ type, userInput }) => {
   }
 
   return false;
+};
+
+const formatEventTime = (event = {}) => {
+  const value = event.start?.dateTime || event.start?.date;
+
+  if (!value) return "";
+
+  if (event.start?.date) return "all day";
+
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+};
+
+const summarizeEvents = (events = [], label = "calendar") => {
+  if (!events.length) return `You have nothing on your ${label}.`;
+
+  return events
+    .slice(0, 5)
+    .map((event) => `${event.summary || "Untitled event"} at ${formatEventTime(event)}`)
+    .join(". ");
+};
+
+const getCalendarErrorMessage = (error) => {
+  if (error.response?.status === 401 || error.response?.data?.code === "GOOGLE_CALENDAR_NOT_CONNECTED") {
+    return "Google Calendar is not connected yet. Use the calendar panel to connect it first.";
+  }
+
+  if (error.response?.status === 403) {
+    return "Google Calendar permission is missing. Please reconnect Calendar and allow calendar access.";
+  }
+
+  return error.response?.data?.message || "I had trouble with Google Calendar.";
+};
+
+export { CALENDAR_INTENTS, isConfirmationResponse, parseCalendarIntent };
+
+export const prepareCalendarAction = async ({ intent, serverUrl, signal }) => {
+  if (!intent) return null;
+
+  if (intent.type === CALENDAR_INTENTS.DELETE_EVENT || intent.type === CALENDAR_INTENTS.UPDATE_EVENT) {
+    const targetEvent = intent.payload?.targetNext
+      ? await getNextEvent(serverUrl, signal)
+      : (await searchCalendarEvents(
+          serverUrl,
+          {
+            q: intent.payload?.query || "",
+            maxResults: 5,
+          },
+          signal
+        ))[0];
+
+    if (!targetEvent) {
+      return {
+        ready: false,
+        response: "I could not find a matching calendar event.",
+      };
+    }
+
+    return {
+      ready: true,
+      confirmation: {
+        intent: {
+          ...intent,
+          payload: {
+            ...intent.payload,
+            eventId: targetEvent.id,
+            event: targetEvent,
+          },
+        },
+        message:
+          intent.type === CALENDAR_INTENTS.DELETE_EVENT
+            ? `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I delete it?`
+            : `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I update it?`,
+      },
+    };
+  }
+
+  if (intent.needsConfirmation) {
+    return {
+      ready: true,
+      confirmation: {
+        intent,
+        message: describeCalendarIntent(intent),
+      },
+    };
+  }
+
+  return {
+    ready: true,
+    confirmation: null,
+  };
+};
+
+export const executeCalendarIntent = async ({ intent, serverUrl, signal }) => {
+  try {
+    switch (intent.type) {
+      case CALENDAR_INTENTS.CREATE_EVENT: {
+        const event = await createCalendarEvent(serverUrl, intent.payload, signal);
+
+        return {
+          event,
+          response: `Done. I added ${event.summary || "the event"} to your Google Calendar.`,
+        };
+      }
+
+      case CALENDAR_INTENTS.CREATE_BIRTHDAY: {
+        const event = await createBirthdayEvent(serverUrl, intent.payload, signal);
+
+        return {
+          event,
+          response: `Done. I added ${event.summary || "the birthday"} every year.`,
+        };
+      }
+
+      case CALENDAR_INTENTS.CREATE_REMINDER: {
+        const event = await createReminderEvent(serverUrl, intent.payload, signal);
+
+        return {
+          event,
+          response: `Done. I added the reminder ${event.summary || ""}.`.trim(),
+        };
+      }
+
+      case CALENDAR_INTENTS.VIEW_TODAY_EVENTS: {
+        const events = await getTodayEvents(serverUrl, signal);
+
+        return {
+          events,
+          response: summarizeEvents(events, "calendar today"),
+        };
+      }
+
+      case CALENDAR_INTENTS.VIEW_WEEK_EVENTS: {
+        const events = await getWeekEvents(serverUrl, signal);
+
+        return {
+          events,
+          response: summarizeEvents(events, "calendar this week"),
+        };
+      }
+
+      case CALENDAR_INTENTS.VIEW_MONTH_EVENTS: {
+        const events = await getEventsByRange(serverUrl, { range: "month", maxResults: 20 }, signal);
+
+        return {
+          events,
+          response: summarizeEvents(events, "calendar this month"),
+        };
+      }
+
+      case CALENDAR_INTENTS.VIEW_NEXT_EVENT: {
+        const event = await getNextEvent(serverUrl, signal);
+
+        return {
+          event,
+          response: event
+            ? `Your next event is ${event.summary || "untitled"} at ${formatEventTime(event)}.`
+            : "You do not have an upcoming event.",
+        };
+      }
+
+      case CALENDAR_INTENTS.SEARCH_EVENT: {
+        const events = await searchCalendarEvents(
+          serverUrl,
+          {
+            q: intent.payload?.query || "",
+            maxResults: 10,
+          },
+          signal
+        );
+
+        return {
+          events,
+          response: summarizeEvents(events, "search results"),
+        };
+      }
+
+      case CALENDAR_INTENTS.UPDATE_EVENT: {
+        const event = await updateCalendarEvent(
+          serverUrl,
+          intent.payload.eventId,
+          {
+            ...intent.payload,
+            event: undefined,
+          },
+          signal
+        );
+
+        return {
+          event,
+          response: `Done. I updated ${event.summary || "the event"}.`,
+        };
+      }
+
+      case CALENDAR_INTENTS.DELETE_EVENT: {
+        await deleteCalendarEvent(serverUrl, intent.payload.eventId, signal);
+
+        return {
+          response: "Done. I deleted the event.",
+        };
+      }
+
+      case CALENDAR_INTENTS.CHECK_AVAILABILITY: {
+        const data = await checkCalendarAvailability(serverUrl, intent.payload, signal);
+
+        return {
+          availability: data,
+          response: data.free
+            ? "Yes, you are free during that time."
+            : "No, you have something scheduled during that time.",
+        };
+      }
+
+      default:
+        return {
+          response: "I did not understand that calendar command.",
+        };
+    }
+  } catch (error) {
+    return {
+      error,
+      response: getCalendarErrorMessage(error),
+    };
+  }
 };
 
 export const processCommand = async ({

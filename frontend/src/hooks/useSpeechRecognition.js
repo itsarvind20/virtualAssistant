@@ -11,11 +11,15 @@ export const useSpeechRecognition = ({
 }) => {
   const serviceRef = useRef(null);
   const restartTimerRef = useRef(null);
+  const enabledRef = useRef(enabled);
+  const pausedRef = useRef(paused);
   const callbacksRef = useRef({ onResult, onInterim, onError });
   const [supported, setSupported] = useState(true);
   const [active, setActive] = useState(false);
   const [provider, setProvider] = useState("loading");
 
+  enabledRef.current = enabled;
+  pausedRef.current = paused;
   callbacksRef.current = { onResult, onInterim, onError };
 
   const clearRestart = useCallback(() => {
@@ -26,9 +30,9 @@ export const useSpeechRecognition = ({
   }, []);
 
   const start = useCallback(() => {
-    if (!enabled || paused) return;
+    if (!enabledRef.current || pausedRef.current) return;
     serviceRef.current?.start();
-  }, [enabled, paused]);
+  }, []);
 
   const stop = useCallback(() => {
     clearRestart();
@@ -54,7 +58,7 @@ export const useSpeechRecognition = ({
         onEnd: () => {
           setActive(false);
 
-          if (!paused) {
+          if (enabledRef.current && !pausedRef.current) {
             clearRestart();
             restartTimerRef.current = setTimeout(start, restartDelay);
           }
@@ -63,7 +67,12 @@ export const useSpeechRecognition = ({
           setActive(false);
           callbacksRef.current.onError?.(event);
 
-          if (!paused && event?.error !== "not-allowed") {
+          if (
+            enabledRef.current &&
+            !pausedRef.current &&
+            event?.error !== "not-allowed" &&
+            event?.error !== "aborted"
+          ) {
             clearRestart();
             restartTimerRef.current = setTimeout(start, restartDelay + 500);
           }
@@ -77,7 +86,7 @@ export const useSpeechRecognition = ({
 
         serviceRef.current = service;
         setProvider(service.provider || "browser");
-        if (!paused) {
+        if (!pausedRef.current) {
           service.start();
         }
       } catch (error) {
@@ -95,7 +104,7 @@ export const useSpeechRecognition = ({
       serviceRef.current?.dispose();
       serviceRef.current = null;
     };
-  }, [clearRestart, enabled, paused, restartDelay, start]);
+  }, [clearRestart, enabled, restartDelay, start]);
 
   useEffect(() => {
     if (!enabled) return;
