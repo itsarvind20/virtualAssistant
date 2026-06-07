@@ -28,7 +28,7 @@ import { abortTask, createTaskController, isInterruptCommand } from "../services
 import { createTtsService } from "../services/ttsService";
 import { normalizeSpeechText, requestMicrophonePermission } from "../utils/audioHelpers";
 import { createSilenceTimer } from "../utils/silenceDetection";
-import { isPorcupineConfigured } from "../services/speechConfig";
+import { getAssistantResponseLanguageLabel, shouldUsePorcupineWakeWord, speechConfig } from "../services/speechConfig";
 
 const ACTIVE_TIMEOUT_MS = 6500;
 const FOLLOW_UP_TIMEOUT_MS = 45000;
@@ -56,21 +56,24 @@ function Home() {
   const ttsRef = useRef(null);
   const activeCommandRef = useRef("");
   const activeStateRef = useRef(assistant.state);
+  const ignoreSpeechUntilRef = useRef(0);
   const silenceTimerRef = useRef(null);
   const sessionTimerRef = useRef(null);
   const recorderRef = useRef(createAudioCommandRecorder());
+  const speechRef = useRef(null);
   const endRef = useRef(null);
 
   const assistantName = userData?.assistantName || "Assistant";
   const userName = userData?.name || "there";
   const googleCalendar = useGoogleCalendar({ serverUrl, enabled: Boolean(userData) });
+  const usePorcupineWake = shouldUsePorcupineWakeWord();
 
   useEffect(() => {
     activeStateRef.current = assistant.state;
   }, [assistant.state]);
 
   useEffect(() => {
-    ttsRef.current = createTtsService();
+    ttsRef.current = createTtsService({ lang: speechConfig.ttsLanguage });
 
     return () => {
       ttsRef.current?.cancel();
@@ -87,6 +90,7 @@ function Home() {
 You are ${assistantName}, a concise real-time voice assistant for ${userName}.
 Classify commands accurately, keep replies short, and never claim an action happened if it failed.
 For interruption commands, respond with a short acknowledgement.
+Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks for another language.
 `.trim(),
     [assistantName, userName]
   );
@@ -130,8 +134,10 @@ For interruption commands, respond with a short acknowledgement.
   }, [assistant, clearSessionTimer]);
 
   const handleInterrupt = useCallback(async () => {
+    ignoreSpeechUntilRef.current = Date.now() + 1200;
     abortTask(taskControllerRef);
     ttsRef.current?.cancel();
+    speechRef.current?.abort();
     recorderRef.current.cancel();
     activeCommandRef.current = "";
     silenceTimerRef.current?.clear();
@@ -153,7 +159,14 @@ For interruption commands, respond with a short acknowledgement.
     }
 
     addMessage("assistant", "Stopped.");
-  }, [addMessage, assistant, buildSystemPrompt, clearSessionTimer, serverUrl]);
+    startFollowUpSession();
+
+    window.setTimeout(() => {
+      if (!manualSleep) {
+        speechRef.current?.start();
+      }
+    }, 900);
+  }, [addMessage, assistant, buildSystemPrompt, clearSessionTimer, manualSleep, serverUrl, startFollowUpSession]);
 
   const endConversation = useCallback(async (response = "Conversation ended. Say my name when you need me again.") => {
     abortTask(taskControllerRef);
@@ -225,10 +238,12 @@ For interruption commands, respond with a short acknowledgement.
 
       if (controller.signal.aborted) return;
 
-      if (result.events) {
+      if (result.error) {
+        assistant.setError(result.response);
+      } else if (result.events) {
         googleCalendar.setEvents(result.events);
       } else {
-        googleCalendar.refresh().catch(() => {});
+        await googleCalendar.refresh().catch(() => {});
       }
 
       addMessage("assistant", result.response);
@@ -254,7 +269,12 @@ For interruption commands, respond with a short acknowledgement.
 
     if (controller.signal.aborted) return;
 
-    googleCalendar.refresh().catch(() => {});
+    if (result.error) {
+      assistant.setError(result.response);
+    } else {
+      await googleCalendar.refresh().catch(() => {});
+    }
+
     addMessage("assistant", result.response);
     await speak(result.response, ASSISTANT_STATES.IDLE);
     startFollowUpSession();
@@ -274,7 +294,17 @@ For interruption commands, respond with a short acknowledgement.
       const command = normalizeSpeechText(rawCommand);
 
       if (!command) {
+        activeCommandRef.current = "";
+        setInterimText("");
+        setMicPaused(false);
         assistant.setState(ASSISTANT_STATES.SLEEPING);
+
+        window.setTimeout(() => {
+          if (!manualSleep) {
+            speechRef.current?.start();
+          }
+        }, 500);
+
         return;
       }
 
@@ -367,6 +397,7 @@ For interruption commands, respond with a short acknowledgement.
       confirmCalendarAction,
       endConversation,
       handleInterrupt,
+      manualSleep,
       pendingCalendarAction,
       runPreparedCalendarIntent,
       serverUrl,
@@ -389,6 +420,7 @@ For interruption commands, respond with a short acknowledgement.
       const cloudTranscript = await transcribeAudioCommand({
         serverUrl,
         audioBlob,
+        language: speechConfig.recognitionLanguage,
         signal: controller.signal,
       }).catch(() => "");
       const command = cloudTranscript || browserTranscript;
@@ -441,7 +473,7 @@ For interruption commands, respond with a short acknowledgement.
     enabled:
       micReady &&
       !manualSleep &&
-      isPorcupineConfigured() &&
+      usePorcupineWake &&
       [ASSISTANT_STATES.SLEEPING, ASSISTANT_STATES.IDLE].includes(assistant.state),
     assistantName,
     onWake: (phrase) => {
@@ -459,6 +491,7 @@ For interruption commands, respond with a short acknowledgement.
       const currentState = activeStateRef.current;
 
       if (!normalized) return;
+      if (Date.now() < ignoreSpeechUntilRef.current) return;
 
       if (isInterruptCommand(normalized) && currentState !== ASSISTANT_STATES.SLEEPING) {
         handleInterrupt();
@@ -504,14 +537,18 @@ For interruption commands, respond with a short acknowledgement.
       micPaused ||
       (
         porcupineWake.active &&
-        [ASSISTANT_STATES.SLEEPING, ASSISTANT_STATES.IDLE].includes(assistant.state)
+        usePorcupineWake &&
+        assistant.state === ASSISTANT_STATES.SLEEPING
       ),
     onResult: handleSpeechResult,
     onInterim: handleInterim,
     onError: (event) => {
+      if (event?.error === "aborted" || event?.error === "no-speech") return;
+
       assistant.setError(event?.message || event?.error || "Microphone error");
     },
   });
+  speechRef.current = speech;
 
   const setAssistantState = assistant.setState;
   const setAssistantError = assistant.setError;
@@ -617,19 +654,19 @@ For interruption commands, respond with a short acknowledgement.
 
   return (
     <AssistantProvider value={assistantContextValue}>
-      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.2),transparent_28%),radial-gradient(circle_at_80%_15%,rgba(168,85,247,0.18),transparent_30%),linear-gradient(135deg,#020617,#07111f_45%,#050816)] px-4 text-white">
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.2),transparent_28%),radial-gradient(circle_at_80%_15%,rgba(168,85,247,0.18),transparent_30%),linear-gradient(135deg,#020617,#07111f_45%,#050816)] px-3 text-white sm:px-4">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px]" />
 
-        <div className="relative z-30 flex items-center justify-between py-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-cyan-100/60">assistant os</p>
-            <h1 className="mt-1 text-2xl font-semibold">{assistantName}</h1>
+        <div className="relative z-30 flex shrink-0 items-center justify-between py-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-100/60 sm:text-xs">assistant os</p>
+            <h1 className="mt-0.5 truncate text-lg font-semibold sm:text-xl">{assistantName}</h1>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               aria-label="Sleep"
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
               onClick={sleepAssistant}
             >
               <Moon size={18} />
@@ -637,7 +674,7 @@ For interruption commands, respond with a short acknowledgement.
             <button
               type="button"
               aria-label="Customize assistant"
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
               onClick={() => navigate("/customize")}
             >
               <Settings size={18} />
@@ -645,7 +682,7 @@ For interruption commands, respond with a short acknowledgement.
             <button
               type="button"
               aria-label="Logout"
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
               onClick={handleLogOut}
             >
               <LogOut size={18} />
@@ -653,44 +690,44 @@ For interruption commands, respond with a short acknowledgement.
           </div>
         </div>
 
-        <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5 pb-28 pt-2">
+        <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col items-center justify-start gap-2 overflow-hidden pb-16 pt-1 sm:gap-3 sm:pb-20">
           <AssistantOrb state={assistant.state} image={userData?.assistantImage} name={assistantName} />
 
-          <div className="text-center">
-              <p className="text-sm uppercase tracking-[0.28em] text-cyan-100/60">
+          <div className="shrink-0 text-center">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-100/60 sm:text-xs">
               {manualSleep
                 ? "manual sleep mode"
                 : micReady
                   ? "continuous wake monitoring"
                   : "microphone permission needed"}
             </p>
-            <h2 className="mt-2 max-w-3xl text-balance text-xl font-medium leading-8 text-white/90 sm:text-2xl">
+            <h2 className="mt-1 line-clamp-2 max-w-3xl text-balance text-sm font-medium leading-5 text-white/90 sm:text-base sm:leading-6 lg:text-lg">
               {latestAssistantMessage}
             </h2>
           </div>
 
           <ListeningAnimation active={assistant.isListening || assistant.isSpeaking || assistant.isThinking} />
 
-          <div className="grid w-full max-w-4xl gap-4 md:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid min-h-0 w-full max-w-4xl gap-2 md:grid-cols-[1.1fr_0.9fr] lg:max-w-5xl">
             <VoiceVisualizer text={interimText} state={assistant.state} />
 
-            <div className="grid gap-4">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/60">wake phrases</p>
-                <div className="mt-3 flex flex-wrap gap-2">
+            <div className="grid min-h-0 gap-2">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3 backdrop-blur-md">
+                <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/60">wake phrases</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {wakeWord.phrases.slice(0, 5).map((phrase) => (
-                    <span key={phrase} className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-sm">
+                    <span key={phrase} className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-2.5 py-1 text-xs">
                       {phrase}
                     </span>
                   ))}
                 </div>
-                <p className="mt-4 text-sm text-white/65">
+                <p className="mt-2 line-clamp-2 text-xs text-white/65 sm:text-sm">
                   {assistant.error ||
                     (manualSleep
                       ? "Microphone is paused. Press the mic button to wake me."
                       : null) ||
                     (speech.active
-                      ? `Listening with ${speech.provider}.`
+                      ? `Listening with ${speech.provider} (${speechConfig.recognitionLanguage}).`
                       : porcupineWake.active
                         ? "Offline wake word engine is listening."
                         : "Recognition is restarting or waiting for permission.")}
@@ -702,6 +739,7 @@ For interruption commands, respond with a short acknowledgement.
                 error={googleCalendar.error}
                 events={googleCalendar.events}
                 loading={googleCalendar.loading}
+                notice={googleCalendar.notice}
                 onConnect={googleCalendar.connect}
                 onRefresh={() => googleCalendar.refresh()}
               />
@@ -711,12 +749,12 @@ For interruption commands, respond with a short acknowledgement.
           <div ref={endRef} />
         </main>
 
-        <footer className="absolute bottom-4 left-1/2 z-30 flex w-[calc(100%-32px)] max-w-4xl -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-black/50 p-2 shadow-2xl backdrop-blur-xl">
+        <footer className="absolute bottom-2 left-1/2 z-30 flex w-[calc(100%-24px)] max-w-4xl -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-black/50 p-1.5 shadow-2xl backdrop-blur-xl sm:bottom-3 sm:w-[calc(100%-32px)]">
           <button
             type="button"
             aria-label="Start listening"
             title="Start listening"
-            className={`grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full transition hover:scale-105 ${
+            className={`grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full transition hover:scale-105 ${
               speech.active ? "bg-emerald-500" : "bg-slate-700 hover:bg-slate-600"
             }`}
             onClick={wakeAssistantManually}
@@ -724,7 +762,7 @@ For interruption commands, respond with a short acknowledgement.
             <Mic size={18} />
           </button>
           <input
-            className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/40"
+            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-white/40 sm:px-3"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") sendMessage();
@@ -735,7 +773,7 @@ For interruption commands, respond with a short acknowledgement.
           <button
             type="button"
             aria-label="Send message"
-            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cyan-300 text-black transition hover:bg-cyan-200"
+            className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full bg-cyan-300 text-black transition hover:bg-cyan-200"
             onClick={() => sendMessage()}
           >
             <Send size={18} />

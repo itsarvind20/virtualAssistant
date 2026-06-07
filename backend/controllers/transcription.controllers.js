@@ -5,6 +5,16 @@ const openai = process.env.OPENAI_API_KEY
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null;
 
+const normalizeTranscriptionLanguage = (language = "") => {
+    const normalized = String(language).trim().toLowerCase();
+
+    if (!normalized) return undefined;
+    if (normalized.startsWith("hi")) return "hi";
+    if (normalized.startsWith("en")) return "en";
+
+    return normalized.split("-")[0];
+};
+
 export const transcribeCommand = async (req, res) => {
 
     try {
@@ -34,8 +44,10 @@ export const transcribeCommand = async (req, res) => {
         const prompt = [
             "This is a short voice command for a virtual desktop assistant.",
             "Expected commands include opening apps, playing music, searching Google, searching YouTube, pausing, stopping, resuming, and sleeping.",
+            "The command may be spoken in English, Hindi, or Hinglish.",
             "Preserve app names and media names clearly."
         ].join(" ");
+        const language = normalizeTranscriptionLanguage(req.body?.language);
 
         const audioFile = await toFile(
             req.file.buffer,
@@ -48,6 +60,7 @@ export const transcribeCommand = async (req, res) => {
         const transcription = await openai.audio.transcriptions.create({
             file: audioFile,
             model,
+            ...(language ? { language } : {}),
             prompt,
             response_format: "json",
             temperature: 0

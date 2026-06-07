@@ -1,25 +1,24 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { userDataContext as UserDataContext } from "./userDataContext";
 
 function UserContext({ children }) {
-  const serverUrl = "http://localhost:8000";
+  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
   const [userData, setUserData] = useState(null);
   const [frontendImage, setFrontendImage] = useState(null);
   const [backendImage, setBackendImage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const handleCurrentUser = async () => {
+  const handleCurrentUser = useCallback(async () => {
     try {
       const result = await axios.get(`${serverUrl}/api/user/current`, {
         withCredentials: true,
       });
       setUserData(result.data);
-      console.log(result.data);
     } catch (error) {
       console.log(error);
     }
-  };
+  }, [serverUrl]);
 
   const getGeminiResponse = async (command, history = [], systemPrompt = "") => {
     try {
@@ -47,7 +46,7 @@ function UserContext({ children }) {
 
   useEffect(() => {
     handleCurrentUser();
-  }, []);
+  }, [handleCurrentUser]);
 
   const value = {
     serverUrl,

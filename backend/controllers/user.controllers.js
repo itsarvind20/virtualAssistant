@@ -187,6 +187,15 @@ const cleanYoutubeQuery = (text = "", assistantName = "") =>
 const formatTarget = (text = "", fallback = "that") =>
     String(text).trim() || fallback;
 
+const runInBackground = (task, label = "background task") => {
+
+    Promise.resolve()
+        .then(task)
+        .catch((error) => {
+            console.log(`${label} failed:`, error?.message || error);
+        });
+};
+
 
 // ====================================
 // GET CURRENT USER
@@ -673,8 +682,9 @@ export const askToAssistant = async (req, res) => {
 
                 if (MUSIC_TYPES.includes(type)) {
 
-                    await playMusic(
-                        aiResult.userInput
+                    runInBackground(
+                        () => playMusic(aiResult.userInput),
+                        "Music playback"
                     );
                 }
 

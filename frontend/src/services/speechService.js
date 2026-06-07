@@ -1,9 +1,9 @@
 import { getBrowserSpeechRecognition, normalizeSpeechText } from "../utils/audioHelpers";
-import { isVoskConfigured, speechConfig } from "./speechConfig";
+import { isVoskConfigured, shouldPreferBrowserSpeechRecognition, speechConfig } from "./speechConfig";
 import { createVoskSpeechRecognitionService } from "./voskSpeechService";
 
 export const createSpeechRecognitionService = ({
-  lang = "en-IN",
+  lang = speechConfig.recognitionLanguage,
   continuous = true,
   interimResults = true,
   maxAlternatives = 3,
@@ -125,6 +125,13 @@ export const createSpeechRecognitionService = ({
 };
 
 export const createBestSpeechRecognitionService = async (options = {}) => {
+  if (shouldPreferBrowserSpeechRecognition()) {
+    return createSpeechRecognitionService({
+      ...options,
+      lang: options.lang || speechConfig.recognitionLanguage,
+    });
+  }
+
   const wantsVosk = speechConfig.provider === "offline" || speechConfig.provider === "auto";
 
   if (wantsVosk && isVoskConfigured()) {
@@ -139,5 +146,8 @@ export const createBestSpeechRecognitionService = async (options = {}) => {
     }
   }
 
-  return createSpeechRecognitionService(options);
+  return createSpeechRecognitionService({
+    ...options,
+    lang: options.lang || speechConfig.recognitionLanguage,
+  });
 };

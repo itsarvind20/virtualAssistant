@@ -489,6 +489,21 @@ FRONTEND_URL=http://localhost:5173
 CALENDAR_TIME_ZONE=Asia/Kolkata
 ```
 
+Add this value to `frontend/.env`:
+
+```env
+VITE_SERVER_URL=http://localhost:8000
+```
+
+For Hindi speech recognition and Hindi voice responses, add:
+
+```env
+VITE_SPEECH_PROVIDER=browser
+VITE_SPEECH_RECOGNITION_LANG=hi-IN
+VITE_TTS_LANG=hi-IN
+VITE_ASSISTANT_RESPONSE_LANG=hi
+```
+
 Do not put `GOOGLE_CLIENT_SECRET` in the frontend.
 
 ### Calendar Confirmation Flow

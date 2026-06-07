@@ -21,11 +21,47 @@ const fillerPatterns = [
   /\bcould you\b/g,
   /\bwould you\b/g,
   /\bmy\b/g,
+  /\ba\b/g,
+  /\ban\b/g,
+  /\bthe\b/g,
 ];
+
+const hindiCalendarPatterns = [
+  [/\bआज\b/g, " today "],
+  [/\bकल\b/g, " tomorrow "],
+  [/\bपरसों\b/g, " day after tomorrow "],
+  [/\bइवेंट\b/g, " event "],
+  [/\bकार्यक्रम\b/g, " event "],
+  [/\bमीटिंग\b/g, " meeting "],
+  [/\bबैठक\b/g, " meeting "],
+  [/\bटास्क\b/g, " task "],
+  [/\bकाम\b/g, " task "],
+  [/\bरिमाइंडर\b/g, " reminder "],
+  [/\bयाद दिलाओ\b/g, " remind me "],
+  [/\bजोड़ो\b/g, " add "],
+  [/\bजोड़ो\b/g, " add "],
+  [/\bबनाओ\b/g, " create "],
+  [/\bशेड्यूल\b/g, " schedule "],
+  [/\bदिखाओ\b/g, " show "],
+  [/\bहटाओ\b/g, " delete "],
+  [/\bमिटाओ\b/g, " delete "],
+  [/\bअगली\b/g, " next "],
+  [/\bअगला\b/g, " next "],
+  [/\bहाँ\b/g, " yes "],
+  [/\bहां\b/g, " yes "],
+  [/\bनहीं\b/g, " no "],
+  [/\bनही\b/g, " no "],
+];
+
+const applyHindiCalendarAliases = (text = "") =>
+  hindiCalendarPatterns.reduce(
+    (value, [pattern, replacement]) => value.replace(pattern, replacement),
+    String(text)
+  );
 
 const cleanText = (text = "") =>
   fillerPatterns
-    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpeechText(text))
+    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpeechText(applyHindiCalendarAliases(text)))
     .replace(/\s+/g, " ")
     .trim();
 
@@ -103,7 +139,7 @@ const reminderTitleFromCommand = (text = "") => {
 
   return titleCase(
     withoutDate
-      .replace(/\b(remind me to|remind|reminder|me|to|at|on|every)\b/g, " ")
+      .replace(/\b(add|create|schedule|remind me to|remind|reminder|task|todo|to do|me|to|at|on|every)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim()
   ) || "Reminder";
@@ -130,7 +166,7 @@ const searchQueryFromCommand = (text = "") =>
 export const isCalendarCommand = (text = "") => {
   const command = cleanText(text);
 
-  return /\b(calendar|meeting|event|schedule|birthday|remind|reminder|availability|available|free|busy)\b/.test(command) ||
+  return /\b(calendar|meeting|event|schedule|birthday|remind|reminder|task|todo|to do|availability|available|free|busy)\b/.test(command) ||
     /\b(am i free|what is on|show my meetings|next meeting)\b/.test(command);
 };
 
@@ -160,38 +196,6 @@ export const parseCalendarIntent = (text = "") => {
         naturalText: text,
         ...parseDateResult(command),
       },
-      needsConfirmation: false,
-    };
-  }
-
-  if (/\b(today|schedule today|calendar today|on my calendar today)\b/.test(command) && /\b(calendar|schedule|meeting|event|what is on)\b/.test(command)) {
-    return {
-      type: CALENDAR_INTENTS.VIEW_TODAY_EVENTS,
-      payload: {},
-      needsConfirmation: false,
-    };
-  }
-
-  if (/\b(this week|week|meetings this week)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
-    return {
-      type: CALENDAR_INTENTS.VIEW_WEEK_EVENTS,
-      payload: {},
-      needsConfirmation: false,
-    };
-  }
-
-  if (/\b(this month|month)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
-    return {
-      type: CALENDAR_INTENTS.VIEW_MONTH_EVENTS,
-      payload: { range: "month" },
-      needsConfirmation: false,
-    };
-  }
-
-  if (/\b(next meeting|next event|next reminder|next on my calendar)\b/.test(command)) {
-    return {
-      type: CALENDAR_INTENTS.VIEW_NEXT_EVENT,
-      payload: {},
       needsConfirmation: false,
     };
   }
@@ -234,7 +238,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\bremind me\b|\breminder\b/.test(command)) {
+  if (/\bremind me\b|\breminder\b|\btask\b|\btodo\b|\bto do\b/.test(command)) {
     const parsedDate = parseDateResult(command);
 
     return {
@@ -265,6 +269,38 @@ export const parseCalendarIntent = (text = "") => {
         ...parsedDate,
       },
       needsConfirmation: true,
+    };
+  }
+
+  if (/\b(today|schedule today|calendar today|on my calendar today)\b/.test(command) && /\b(calendar|schedule|meeting|event|what is on|show)\b/.test(command)) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_TODAY_EVENTS,
+      payload: {},
+      needsConfirmation: false,
+    };
+  }
+
+  if (/\b(this week|week|meetings this week)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_WEEK_EVENTS,
+      payload: {},
+      needsConfirmation: false,
+    };
+  }
+
+  if (/\b(this month|month)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_MONTH_EVENTS,
+      payload: { range: "month" },
+      needsConfirmation: false,
+    };
+  }
+
+  if (/\b(next meeting|next event|next reminder|next on my calendar)\b/.test(command)) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_NEXT_EVENT,
+      payload: {},
+      needsConfirmation: false,
     };
   }
 

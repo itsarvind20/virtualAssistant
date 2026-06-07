@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 const MotionDiv = motion.div;
 
@@ -21,8 +22,12 @@ const stateScale = {
 };
 
 function AssistantOrb({ state, image, name }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(image) && !imageFailed;
+  const initial = name?.trim()?.[0]?.toUpperCase() || "A";
+
   return (
-    <div className="relative grid h-52 w-52 place-items-center sm:h-64 sm:w-64">
+    <div className="relative grid h-36 w-36 shrink-0 place-items-center sm:h-44 sm:w-44 lg:h-48 lg:w-48">
       <MotionDiv
         animate={{
           scale: stateScale[state] || stateScale.idle,
@@ -44,11 +49,18 @@ function AssistantOrb({ state, image, name }) {
         className="absolute inset-3 rounded-full border border-cyan-200/40"
       />
 
-      <div className="relative h-40 w-40 overflow-hidden rounded-full border border-white/30 bg-black/50 shadow-[0_0_80px_rgba(34,211,238,0.35)] sm:h-48 sm:w-48">
-        {image ? (
-          <img className="h-full w-full object-cover" src={image} alt={name} />
+      <div className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border border-white/30 bg-slate-950/80 shadow-[0_0_64px_rgba(34,211,238,0.35)] sm:h-36 sm:w-36">
+        {showImage ? (
+          <img
+            className="h-full w-full object-cover"
+            src={image}
+            alt={name || "Assistant avatar"}
+            onError={() => setImageFailed(true)}
+          />
         ) : (
-          <div className="h-full w-full bg-black" />
+          <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_35%_25%,rgba(34,211,238,0.35),transparent_32%),linear-gradient(135deg,#0f172a,#020617)] text-4xl font-semibold text-cyan-100 sm:text-5xl">
+            {initial}
+          </div>
         )}
       </div>
     </div>

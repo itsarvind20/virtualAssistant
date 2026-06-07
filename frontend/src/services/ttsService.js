@@ -1,10 +1,24 @@
-const getPreferredVoice = (voices) =>
+import { speechConfig } from "./speechConfig";
+
+const escapeRegExp = (value = "") =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getPreferredVoice = (voices, language = "en-IN") => {
+  const baseLanguage = language.split("-")[0];
+  const exactLanguagePattern = new RegExp(`^${escapeRegExp(language)}$`, "i");
+  const baseLanguagePattern = new RegExp(`^${escapeRegExp(baseLanguage)}(?:[-_]|$)`, "i");
+
+  return voices.find((voice) => exactLanguagePattern.test(voice.lang)) ||
+  voices.find((voice) => baseLanguagePattern.test(voice.lang)) ||
+  voices.find((voice) => /hi[-_]IN/i.test(voice.lang)) ||
+  voices.find((voice) => /^hi/i.test(voice.lang)) ||
   voices.find((voice) => /en[-_]IN/i.test(voice.lang)) ||
   voices.find((voice) => /en[-_]US/i.test(voice.lang)) ||
   voices.find((voice) => /^en/i.test(voice.lang)) ||
   voices[0];
+};
 
-export const createTtsService = () => {
+export const createTtsService = ({ lang = speechConfig.ttsLanguage } = {}) => {
   const synth = window.speechSynthesis;
   const queue = [];
   let speaking = false;
@@ -23,8 +37,8 @@ export const createTtsService = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
 
-    utterance.voice = getPreferredVoice(voices);
-    utterance.lang = utterance.voice?.lang || "en-IN";
+    utterance.voice = getPreferredVoice(voices, lang);
+    utterance.lang = utterance.voice?.lang || lang;
     utterance.rate = 0.96;
     utterance.pitch = 1;
 

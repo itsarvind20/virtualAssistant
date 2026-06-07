@@ -78,13 +78,16 @@ export const createAudioCommandRecorder = () => {
   };
 };
 
-export const transcribeAudioCommand = async ({ serverUrl, audioBlob, signal }) => {
+export const transcribeAudioCommand = async ({ serverUrl, audioBlob, language, signal }) => {
   if (!audioBlob) return "";
 
   const formData = new FormData();
   const extension = audioBlob.type.includes("mp4") ? "mp4" : "webm";
 
   formData.append("audio", audioBlob, `command.${extension}`);
+  if (language) {
+    formData.append("language", language);
+  }
 
   const response = await axios.post(`${serverUrl}/api/user/transcribe`, formData, {
     withCredentials: true,

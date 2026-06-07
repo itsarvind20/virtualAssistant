@@ -11,6 +11,7 @@ export const useGoogleCalendar = ({ serverUrl, enabled = true } = {}) => {
   const [loading, setLoading] = useState(Boolean(enabled));
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const refresh = useCallback(async (signal) => {
     if (!enabled || !serverUrl) return;
@@ -50,6 +51,7 @@ export const useGoogleCalendar = ({ serverUrl, enabled = true } = {}) => {
 
     setLoading(true);
     setError("");
+    setNotice("");
 
     try {
       await connectGoogleCalendar(serverUrl);
@@ -67,11 +69,36 @@ export const useGoogleCalendar = ({ serverUrl, enabled = true } = {}) => {
     return () => controller.abort();
   }, [refresh]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const calendarResult = params.get("calendar");
+
+    if (!calendarResult) return;
+
+    if (calendarResult === "connected") {
+      setNotice("Google Calendar connected.");
+      setError("");
+    }
+
+    if (calendarResult === "error") {
+      setNotice("");
+      setError(params.get("message") || "Google Calendar connection failed.");
+    }
+
+    params.delete("calendar");
+    params.delete("message");
+
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
+
   return {
     connected,
     loading,
     events,
     error,
+    notice,
     connect,
     refresh,
     loadWeek,
