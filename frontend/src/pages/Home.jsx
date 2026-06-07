@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { LogOut, Mic, Moon, Send, Settings } from "lucide-react";
+import { CalendarDays, LogOut, Mic, Moon, Send, Settings } from "lucide-react";
 import AssistantOrb from "../components/AssistantOrb";
 import CalendarPanel from "../components/CalendarPanel";
 import ConfirmationModal from "../components/ConfirmationModal";
@@ -50,6 +50,7 @@ function Home() {
   const [micPaused, setMicPaused] = useState(false);
   const [manualSleep, setManualSleep] = useState(false);
   const [pendingCalendarAction, setPendingCalendarAction] = useState(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const historyRef = useRef([]);
   const taskControllerRef = useRef(createTaskController());
@@ -665,6 +666,14 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
           <div className="flex gap-2">
             <button
               type="button"
+              aria-label="Calendar details"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
+              onClick={() => setCalendarOpen(true)}
+            >
+              <CalendarDays size={18} />
+            </button>
+            <button
+              type="button"
               aria-label="Sleep"
               className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
               onClick={sleepAssistant}
@@ -734,15 +743,6 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
                 </p>
               </div>
 
-              <CalendarPanel
-                connected={googleCalendar.connected}
-                error={googleCalendar.error}
-                events={googleCalendar.events}
-                loading={googleCalendar.loading}
-                notice={googleCalendar.notice}
-                onConnect={googleCalendar.connect}
-                onRefresh={() => googleCalendar.refresh()}
-              />
             </div>
           </div>
 
@@ -786,6 +786,23 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
           onConfirm={confirmCalendarAction}
           open={Boolean(pendingCalendarAction)}
         />
+
+        {calendarOpen ? (
+          <div className="absolute inset-0 z-40 grid place-items-center bg-black/55 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-md">
+              <CalendarPanel
+                connected={googleCalendar.connected}
+                error={googleCalendar.error}
+                events={googleCalendar.events}
+                loading={googleCalendar.loading}
+                notice={googleCalendar.notice}
+                onClose={() => setCalendarOpen(false)}
+                onConnect={googleCalendar.connect}
+                onRefresh={() => googleCalendar.refresh()}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </AssistantProvider>
   );
