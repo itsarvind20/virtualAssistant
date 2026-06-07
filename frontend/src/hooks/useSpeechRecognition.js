@@ -17,6 +17,8 @@ export const useSpeechRecognition = ({
   const [supported, setSupported] = useState(true);
   const [active, setActive] = useState(false);
   const [provider, setProvider] = useState("loading");
+  const [restartCount, setRestartCount] = useState(0);
+  const [lastError, setLastError] = useState("");
 
   enabledRef.current = enabled;
   pausedRef.current = paused;
@@ -33,6 +35,19 @@ export const useSpeechRecognition = ({
     if (!enabledRef.current || pausedRef.current) return;
     serviceRef.current?.start();
   }, []);
+
+  const scheduleRestart = useCallback(
+    (delay = restartDelay) => {
+      if (!enabledRef.current || pausedRef.current) return;
+
+      clearRestart();
+      restartTimerRef.current = setTimeout(() => {
+        setRestartCount((count) => count + 1);
+        start();
+      }, delay);
+    },
+    [clearRestart, restartDelay, start]
+  );
 
   const stop = useCallback(() => {
     clearRestart();
@@ -58,13 +73,11 @@ export const useSpeechRecognition = ({
         onEnd: () => {
           setActive(false);
 
-          if (enabledRef.current && !pausedRef.current) {
-            clearRestart();
-            restartTimerRef.current = setTimeout(start, restartDelay);
-          }
+          scheduleRestart(restartDelay);
         },
         onError: (event) => {
           setActive(false);
+          setLastError(event?.message || event?.error || "");
           callbacksRef.current.onError?.(event);
 
           if (
@@ -73,8 +86,7 @@ export const useSpeechRecognition = ({
             event?.error !== "not-allowed" &&
             event?.error !== "aborted"
           ) {
-            clearRestart();
-            restartTimerRef.current = setTimeout(start, restartDelay + 500);
+            scheduleRestart(restartDelay + 500);
           }
         },
       });
@@ -104,7 +116,7 @@ export const useSpeechRecognition = ({
       serviceRef.current?.dispose();
       serviceRef.current = null;
     };
-  }, [clearRestart, enabled, restartDelay, start]);
+  }, [clearRestart, enabled, restartDelay, scheduleRestart, start]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -116,10 +128,24 @@ export const useSpeechRecognition = ({
     }
   }, [enabled, paused, start, stop]);
 
+  useEffect(() => {
+    if (!enabled || paused) return undefined;
+
+    const watchdog = setInterval(() => {
+      if (!active && enabledRef.current && !pausedRef.current) {
+        scheduleRestart(0);
+      }
+    }, 4000);
+
+    return () => clearInterval(watchdog);
+  }, [active, enabled, paused, scheduleRestart]);
+
   return {
     supported,
     active,
     provider,
+    restartCount,
+    lastError,
     start,
     stop,
     abort,

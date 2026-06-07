@@ -75,6 +75,10 @@ export const classifyLocalIntent = (text = "") => {
     return { type: "open-youtube", userInput: "youtube", response: "Opening YouTube." };
   }
 
+  if (/^(please\s+)?(open|launch|start)\s+(my\s+)?(google\s+)?(calendar|calender)(\s+(app|site|website))?$/.test(command)) {
+    return { type: "open-google-calendar", userInput: "google calendar", response: "Opening Google Calendar." };
+  }
+
   if (/\b(open|launch|start)\s+(chrome|google chrome)\b/.test(command)) {
     return { type: "open-chrome", userInput: "chrome", response: "Opening Chrome." };
   }
@@ -142,6 +146,11 @@ export const executeLocalBrowserAction = ({ type, userInput }) => {
 
   if (type === "open-youtube") {
     window.open("https://www.youtube.com", "_blank");
+    return true;
+  }
+
+  if (type === "open-google-calendar") {
+    window.open("https://calendar.google.com/calendar/u/0/r", "_blank");
     return true;
   }
 

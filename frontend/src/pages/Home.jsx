@@ -51,6 +51,15 @@ function Home() {
   const [manualSleep, setManualSleep] = useState(false);
   const [pendingCalendarAction, setPendingCalendarAction] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [, setSpeechDebug] = useState({
+    final: "",
+    interim: "",
+    wake: "",
+    browserTranscript: "",
+    cloudTranscript: "",
+    commandSource: "",
+    lastEvent: "initializing",
+  });
 
   const historyRef = useRef([]);
   const taskControllerRef = useRef(createTaskController());
@@ -345,6 +354,15 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
         return;
       }
 
+      if (localIntent?.type === "open-google-calendar") {
+        addMessage("user", command);
+        executeLocalBrowserAction(localIntent);
+        addMessage("assistant", localIntent.response);
+        await speak(localIntent.response, ASSISTANT_STATES.IDLE);
+        startFollowUpSession();
+        return;
+      }
+
       const calendarIntent = parseCalendarIntent(command);
 
       if (calendarIntent) {
@@ -414,6 +432,13 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     activeCommandRef.current = "";
     setInterimText("");
     assistant.setState(ASSISTANT_STATES.THINKING);
+    setSpeechDebug((debug) => ({
+      ...debug,
+      browserTranscript,
+      cloudTranscript: "",
+      commandSource: "",
+      lastEvent: "transcribing command audio",
+    }));
 
     try {
       const controller = abortTask(taskControllerRef);
@@ -426,10 +451,24 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       }).catch(() => "");
       const command = cloudTranscript || browserTranscript;
 
+      setSpeechDebug((debug) => ({
+        ...debug,
+        browserTranscript,
+        cloudTranscript,
+        commandSource: cloudTranscript ? "backend transcription" : browserTranscript ? "browser transcript" : "empty",
+        lastEvent: command ? "command captured" : "no command heard",
+      }));
+
       await runCommand(command);
     } catch (error) {
       if (error.name === "CanceledError" || error.name === "AbortError") return;
 
+      setSpeechDebug((debug) => ({
+        ...debug,
+        browserTranscript,
+        commandSource: browserTranscript ? "browser transcript fallback" : "empty",
+        lastEvent: "transcription failed",
+      }));
       await runCommand(browserTranscript);
     }
   }, [assistant, runCommand, serverUrl]);
@@ -441,6 +480,11 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       assistant.setState(ASSISTANT_STATES.WAKING);
       activeCommandRef.current = seedCommand;
       setInterimText(seedCommand);
+      setSpeechDebug((debug) => ({
+        ...debug,
+        interim: seedCommand,
+        lastEvent: seedCommand ? "wake word with command" : "wake word detected",
+      }));
 
       window.setTimeout(() => {
         if (seedCommand) {
@@ -467,6 +511,11 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     assistantName,
     onWake: (phrase) => {
       assistant.setLastWakePhrase(phrase);
+      setSpeechDebug((debug) => ({
+        ...debug,
+        wake: phrase,
+        lastEvent: "wake phrase matched",
+      }));
     },
   });
 
@@ -479,6 +528,11 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     assistantName,
     onWake: (phrase) => {
       assistant.setLastWakePhrase(phrase);
+      setSpeechDebug((debug) => ({
+        ...debug,
+        wake: phrase,
+        lastEvent: "porcupine wake phrase matched",
+      }));
       enterListeningMode();
     },
     onError: (error) => {
@@ -493,6 +547,12 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
 
       if (!normalized) return;
       if (Date.now() < ignoreSpeechUntilRef.current) return;
+
+      setSpeechDebug((debug) => ({
+        ...debug,
+        final: normalized,
+        lastEvent: `final speech in ${currentState}`,
+      }));
 
       if (isInterruptCommand(normalized) && currentState !== ASSISTANT_STATES.SLEEPING) {
         handleInterrupt();
@@ -526,6 +586,12 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
   );
 
   const handleInterim = useCallback((text) => {
+    setSpeechDebug((debug) => ({
+      ...debug,
+      interim: text,
+      lastEvent: `interim speech in ${activeStateRef.current}`,
+    }));
+
     if (activeStateRef.current === ASSISTANT_STATES.LISTENING) {
       setInterimText(text);
       silenceTimerRef.current?.reset();
@@ -546,6 +612,10 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     onError: (event) => {
       if (event?.error === "aborted" || event?.error === "no-speech") return;
 
+      setSpeechDebug((debug) => ({
+        ...debug,
+        lastEvent: `speech error: ${event?.message || event?.error || "unknown"}`,
+      }));
       assistant.setError(event?.message || event?.error || "Microphone error");
     },
   });
