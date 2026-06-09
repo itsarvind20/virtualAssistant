@@ -241,7 +241,7 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       }
 
       const result = await executeCalendarIntent({
-        intent,
+        intent: prepared.intent || intent,
         serverUrl,
         signal: controller.signal,
       });

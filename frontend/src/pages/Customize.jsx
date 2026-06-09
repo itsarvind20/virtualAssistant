@@ -1,4 +1,4 @@
-import React, { useContext, useRef } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { ArrowLeft, ImagePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
@@ -15,6 +15,7 @@ function Customize() {
   const {
     frontendImage,
     selectedImage,
+    userData,
     setBackendImage,
     setFrontendImage,
     setSelectedImage,
@@ -30,6 +31,12 @@ function Customize() {
     setBackendImage(file);
     setFrontendImage(URL.createObjectURL(file));
   };
+
+  useEffect(() => {
+    if (!selectedImage && userData?.assistantImage) {
+      setSelectedImage(userData.assistantImage);
+    }
+  }, [selectedImage, setSelectedImage, userData?.assistantImage]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.2),transparent_28%),radial-gradient(circle_at_80%_15%,rgba(168,85,247,0.18),transparent_30%),linear-gradient(135deg,#020617,#07111f_45%,#050816)] px-4 text-white">
@@ -77,11 +84,11 @@ function Customize() {
             }}
             type="button"
           >
-            {frontendImage ? (
+            {frontendImage || (selectedImage === "input" && userData?.assistantImage) ? (
               <img
                 alt="Uploaded assistant avatar"
                 className="h-full w-full object-cover"
-                src={frontendImage}
+                src={frontendImage || userData?.assistantImage}
               />
             ) : (
               <span className="grid h-full w-full place-items-center text-white/75">

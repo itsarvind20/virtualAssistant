@@ -9,12 +9,14 @@ function Customize2() {
     useContext(userDataContext);
   const [assistantName, setAssistantName] = useState(userData?.assistantName || "");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const handleUpdateAssistant = async () => {
     if (!assistantName.trim()) return;
 
     setLoading(true);
+    setErrorMessage("");
 
     try {
       const formData = new FormData();
@@ -23,7 +25,7 @@ function Customize2() {
       if (backendImage) {
         formData.append("assistantImage", backendImage);
       } else {
-        formData.append("imageUrl", selectedImage);
+        formData.append("imageUrl", selectedImage === "input" ? userData?.assistantImage || "" : selectedImage || userData?.assistantImage || "");
       }
 
       const result = await axios.post(`${serverUrl}/api/user/update`, formData, {
@@ -34,6 +36,7 @@ function Customize2() {
       navigate("/");
     } catch (error) {
       console.log(error);
+      setErrorMessage(error.response?.data?.message || "Could not save your assistant. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -72,6 +75,12 @@ function Customize2() {
           type="text"
           value={assistantName}
         />
+
+        {errorMessage ? (
+          <p className="rounded-lg border border-red-300/20 bg-red-500/10 px-4 py-2 text-sm text-red-100">
+            {errorMessage}
+          </p>
+        ) : null}
 
         <button
           className="inline-flex h-12 min-w-56 items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 text-sm font-semibold text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"

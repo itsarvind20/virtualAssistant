@@ -230,17 +230,27 @@ export const prepareCalendarAction = async ({ intent, serverUrl, signal }) => {
       };
     }
 
+    const preparedIntent = {
+      ...intent,
+      payload: {
+        ...intent.payload,
+        eventId: targetEvent.id,
+        event: targetEvent,
+      },
+    };
+
+    if (!intent.needsConfirmation) {
+      return {
+        ready: true,
+        confirmation: null,
+        intent: preparedIntent,
+      };
+    }
+
     return {
       ready: true,
       confirmation: {
-        intent: {
-          ...intent,
-          payload: {
-            ...intent.payload,
-            eventId: targetEvent.id,
-            event: targetEvent,
-          },
-        },
+        intent: preparedIntent,
         message:
           intent.type === CALENDAR_INTENTS.DELETE_EVENT
             ? `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I delete it?`

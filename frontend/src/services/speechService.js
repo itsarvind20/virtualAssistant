@@ -21,6 +21,7 @@ export const createSpeechRecognitionService = ({
 
   const recognition = new SpeechRecognition();
   let active = false;
+  let starting = false;
   let disposed = false;
 
   recognition.lang = lang;
@@ -29,16 +30,19 @@ export const createSpeechRecognitionService = ({
   recognition.maxAlternatives = maxAlternatives;
 
   recognition.onstart = () => {
+    starting = false;
     active = true;
     onStart?.();
   };
 
   recognition.onend = () => {
+    starting = false;
     active = false;
     onEnd?.();
   };
 
   recognition.onerror = (event) => {
+    starting = false;
     active = false;
     onError?.(event);
   };
@@ -74,23 +78,37 @@ export const createSpeechRecognitionService = ({
   };
 
   const start = () => {
-    if (disposed || active) return;
+    if (disposed || active || starting) return;
 
     try {
+      starting = true;
       recognition.start();
     } catch (error) {
-      if (!String(error.message).includes("already started")) {
+      const alreadyStarted =
+        error?.name === "InvalidStateError" ||
+        String(error.message || "").toLowerCase().includes("already started");
+
+      if (alreadyStarted) {
+        starting = false;
+        active = true;
+        return;
+      }
+
+      starting = false;
+      active = false;
+      if (!alreadyStarted) {
         onError?.(error);
       }
     }
   };
 
   const stop = () => {
-    if (disposed || !active) return;
+    if (disposed || (!active && !starting)) return;
 
     try {
       recognition.stop();
     } catch {
+      starting = false;
       active = false;
     }
   };
@@ -101,6 +119,7 @@ export const createSpeechRecognitionService = ({
     try {
       recognition.abort();
     } catch {
+      starting = false;
       active = false;
     }
   };
@@ -120,6 +139,7 @@ export const createSpeechRecognitionService = ({
     abort,
     dispose,
     isActive: () => active,
+    isStarting: () => starting,
     provider: "browser",
   };
 };

@@ -59,9 +59,19 @@ const applyHindiCalendarAliases = (text = "") =>
     String(text)
   );
 
+const applyCalendarAliases = (text = "") =>
+  applyHindiCalendarAliases(text)
+    .replace(/\bcalender\b/g, " calendar ")
+    .replace(/\bcalandar\b/g, " calendar ")
+    .replace(/\bcalenda\b/g, " calendar ")
+    .replace(/\bagenda\b/g, " calendar ")
+    .replace(/\bappointment\b/g, " event ")
+    .replace(/\bappointments\b/g, " events ")
+    .replace(/\bto\s+do\b/g, " todo ");
+
 const cleanText = (text = "") =>
   fillerPatterns
-    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpeechText(applyHindiCalendarAliases(text)))
+    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpeechText(applyCalendarAliases(text)))
     .replace(/\s+/g, " ")
     .trim();
 
@@ -127,7 +137,7 @@ const eventTitleFromCommand = (text = "") => {
 
   return titleCase(
     withoutDate
-      .replace(/\b(add|create|schedule|book|set up|event|calendar|meeting|meet|on|at|from|to|with)\b/g, " ")
+      .replace(/\b(add|create|schedule|book|set up|make|put|block|event|calendar|meeting|meet|call|discussion|time|slot|google|link|on|at|from|to|with|for)\b/g, " ")
       .replace(/\bevery\s+(day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|month|year)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim()
@@ -139,7 +149,7 @@ const reminderTitleFromCommand = (text = "") => {
 
   return titleCase(
     withoutDate
-      .replace(/\b(add|create|schedule|remind me to|remind|reminder|task|todo|to do|me|to|at|on|every)\b/g, " ")
+      .replace(/\b(add|create|schedule|set|make|put|remind me to|remind|reminder|task|todo|me|to|at|on|every|calendar)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim()
   ) || "Reminder";
@@ -159,15 +169,15 @@ const birthdayNameFromCommand = (text = "") => {
 
 const searchQueryFromCommand = (text = "") =>
   removeChronoText(cleanText(text))
-    .replace(/\b(search|find|show|cancel|delete|remove|move|reschedule|update|edit|meeting|event|reminder|calendar|with|my|next|to|from|at|on)\b/g, " ")
+    .replace(/\b(search|find|show|cancel|delete|remove|move|reschedule|update|edit|change|meeting|event|reminder|calendar|with|my|next|to|from|at|on|called|named)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
 export const isCalendarCommand = (text = "") => {
   const command = cleanText(text);
 
-  return /\b(calendar|meeting|event|schedule|birthday|remind|reminder|task|todo|to do|availability|available|free|busy)\b/.test(command) ||
-    /\b(am i free|what is on|show my meetings|next meeting)\b/.test(command);
+  return /\b(calendar|meeting|event|schedule|birthday|remind|reminder|task|todo|availability|available|free|busy|agenda|appointment)\b/.test(command) ||
+    /\b(am i free|do i have time|what do i have|what is on|show my meetings|next meeting|next event|block time|put .* on calendar)\b/.test(command);
 };
 
 export const isConfirmationResponse = (text = "") => {
@@ -189,7 +199,7 @@ export const parseCalendarIntent = (text = "") => {
 
   if (!isCalendarCommand(command)) return null;
 
-  if (/\b(am i free|available|availability|free tomorrow|free today|busy)\b/.test(command)) {
+  if (/\b(am i free|am i available|available|availability|free tomorrow|free today|do i have time|any meetings|busy)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.CHECK_AVAILABILITY,
       payload: {
@@ -206,12 +216,13 @@ export const parseCalendarIntent = (text = "") => {
       payload: {
         query: searchQueryFromCommand(command),
         naturalText: text,
+        targetNext: /\bnext\b/.test(command),
       },
-      needsConfirmation: true,
+      needsConfirmation: false,
     };
   }
 
-  if (/\b(move|reschedule|update|edit|change|add google meet|google meet link)\b/.test(command) && /\b(event|meeting|reminder|calendar|meet)\b/.test(command)) {
+  if (/\b(move|reschedule|update|edit|change|rename|add google meet|google meet link|meet link)\b/.test(command) && /\b(event|meeting|reminder|calendar|meet)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.UPDATE_EVENT,
       payload: {
@@ -238,7 +249,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\bremind me\b|\breminder\b|\btask\b|\btodo\b|\bto do\b/.test(command)) {
+  if (/\bremind me\b|\breminder\b|\btask\b|\btodo\b|\bfollow up\b/.test(command)) {
     const parsedDate = parseDateResult(command);
 
     return {
@@ -250,11 +261,17 @@ export const parseCalendarIntent = (text = "") => {
         reminders: [0, 10],
         ...parsedDate,
       },
-      needsConfirmation: true,
+      needsConfirmation: false,
     };
   }
 
-  if (/\b(add|create|schedule|book|set up)\b/.test(command) && /\b(event|meeting|calendar|discussion|call)\b/.test(command)) {
+  if (
+    (
+      /\b(add|create|schedule|book|set up|make|put)\b/.test(command) &&
+      /\b(event|meeting|calendar|discussion|call)\b/.test(command)
+    ) ||
+    /\b(block time|block .* calendar|put .* on calendar)\b/.test(command)
+  ) {
     const parsedDate = parseDateResult(command);
 
     return {
@@ -268,11 +285,14 @@ export const parseCalendarIntent = (text = "") => {
         createMeet: /\bgoogle meet|meet link\b/.test(command),
         ...parsedDate,
       },
-      needsConfirmation: true,
+      needsConfirmation: false,
     };
   }
 
-  if (/\b(today|schedule today|calendar today|on my calendar today)\b/.test(command) && /\b(calendar|schedule|meeting|event|what is on|show)\b/.test(command)) {
+  if (
+    /\b(today|schedule today|calendar today|on calendar today|what is on today|what do i have today|meetings today|events today|show today)\b/.test(command) &&
+    /\b(calendar|schedule|meeting|event|what is on|what do i have|show|meetings|events)\b/.test(command)
+  ) {
     return {
       type: CALENDAR_INTENTS.VIEW_TODAY_EVENTS,
       payload: {},
@@ -280,7 +300,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\b(this week|week|meetings this week)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
+  if (/\b(this week|week|meetings this week|events this week|weekly agenda)\b/.test(command) && /\b(calendar|schedule|meeting|event|show|agenda|meetings|events)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.VIEW_WEEK_EVENTS,
       payload: {},
@@ -288,7 +308,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\b(this month|month)\b/.test(command) && /\b(calendar|schedule|meeting|event|show)\b/.test(command)) {
+  if (/\b(this month|month|monthly agenda)\b/.test(command) && /\b(calendar|schedule|meeting|event|show|agenda|meetings|events)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.VIEW_MONTH_EVENTS,
       payload: { range: "month" },
@@ -296,7 +316,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\b(next meeting|next event|next reminder|next on my calendar)\b/.test(command)) {
+  if (/\b(next meeting|next event|next reminder|next on calendar|what is next|upcoming meeting|upcoming event)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.VIEW_NEXT_EVENT,
       payload: {},
@@ -304,7 +324,7 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
-  if (/\b(search|find|show)\b/.test(command) && /\b(calendar|meeting|event|reminder)\b/.test(command)) {
+  if (/\b(search|find|show|look for)\b/.test(command) && /\b(calendar|meeting|event|reminder)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.SEARCH_EVENT,
       payload: {

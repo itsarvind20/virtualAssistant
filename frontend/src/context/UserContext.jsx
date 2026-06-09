@@ -8,6 +8,7 @@ function UserContext({ children }) {
   const [frontendImage, setFrontendImage] = useState(null);
   const [backendImage, setBackendImage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const handleCurrentUser = useCallback(async () => {
     try {
@@ -17,6 +18,9 @@ function UserContext({ children }) {
       setUserData(result.data);
     } catch (error) {
       console.log(error);
+      setUserData(null);
+    } finally {
+      setAuthLoading(false);
     }
   }, [serverUrl]);
 
@@ -58,6 +62,7 @@ function UserContext({ children }) {
     setFrontendImage,
     selectedImage,
     setSelectedImage,
+    authLoading,
     getGeminiResponse,
   };
 

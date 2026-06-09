@@ -14,6 +14,9 @@ export const useSpeechRecognition = ({
   const enabledRef = useRef(enabled);
   const pausedRef = useRef(paused);
   const callbacksRef = useRef({ onResult, onInterim, onError });
+  const startingRef = useRef(false);
+  const intentionalStopRef = useRef(false);
+  const generationRef = useRef(0);
   const [supported, setSupported] = useState(true);
   const [active, setActive] = useState(false);
   const [provider, setProvider] = useState("loading");
@@ -33,7 +36,21 @@ export const useSpeechRecognition = ({
 
   const start = useCallback(() => {
     if (!enabledRef.current || pausedRef.current) return;
-    serviceRef.current?.start();
+
+    const service = serviceRef.current;
+    if (!service || startingRef.current || service.isActive?.() || service.isStarting?.()) return;
+
+    intentionalStopRef.current = false;
+    startingRef.current = true;
+
+    Promise.resolve(service.start())
+      .catch((error) => {
+        setLastError(error?.message || error?.error || "");
+        callbacksRef.current.onError?.(error);
+      })
+      .finally(() => {
+        startingRef.current = false;
+      });
   }, []);
 
   const scheduleRestart = useCallback(
@@ -51,31 +68,48 @@ export const useSpeechRecognition = ({
 
   const stop = useCallback(() => {
     clearRestart();
-    serviceRef.current?.stop();
+    intentionalStopRef.current = true;
+    startingRef.current = false;
+    Promise.resolve(serviceRef.current?.stop()).catch(() => {});
   }, [clearRestart]);
 
   const abort = useCallback(() => {
     clearRestart();
-    serviceRef.current?.abort();
+    intentionalStopRef.current = true;
+    startingRef.current = false;
+    Promise.resolve(serviceRef.current?.abort()).catch(() => {});
   }, [clearRestart]);
 
   useEffect(() => {
     if (!enabled) return undefined;
 
     let cancelled = false;
+    const generation = generationRef.current + 1;
+    generationRef.current = generation;
 
     const initialize = async () => {
       try {
         const service = await createBestSpeechRecognitionService({
         onResult: (text) => callbacksRef.current.onResult?.(text),
         onInterim: (text) => callbacksRef.current.onInterim?.(text),
-        onStart: () => setActive(true),
+        onStart: () => {
+          if (generationRef.current !== generation) return;
+          intentionalStopRef.current = false;
+          startingRef.current = false;
+          setActive(true);
+          setLastError("");
+        },
         onEnd: () => {
+          if (generationRef.current !== generation) return;
           setActive(false);
 
-          scheduleRestart(restartDelay);
+          if (!intentionalStopRef.current) {
+            scheduleRestart(restartDelay);
+          }
         },
         onError: (event) => {
+          if (generationRef.current !== generation) return;
+          startingRef.current = false;
           setActive(false);
           setLastError(event?.message || event?.error || "");
           callbacksRef.current.onError?.(event);
@@ -99,9 +133,10 @@ export const useSpeechRecognition = ({
         serviceRef.current = service;
         setProvider(service.provider || "browser");
         if (!pausedRef.current) {
-          service.start();
+          start();
         }
       } catch (error) {
+        if (cancelled || generationRef.current !== generation) return;
         setProvider("unavailable");
         setSupported(false);
         callbacksRef.current.onError?.(error);
@@ -112,7 +147,10 @@ export const useSpeechRecognition = ({
 
     return () => {
       cancelled = true;
+      generationRef.current += 1;
       clearRestart();
+      startingRef.current = false;
+      intentionalStopRef.current = true;
       serviceRef.current?.dispose();
       serviceRef.current = null;
     };
