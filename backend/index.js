@@ -35,6 +35,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/calendar", calendarRouter);
 
+app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok" });
+});
+
 
 
 // =========================

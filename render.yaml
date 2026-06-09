@@ -1,0 +1,78 @@
+services:
+  - type: web
+    name: virtual-assistant-api
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: MONGODB_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_TOKEN_ENCRYPTION_SECRET
+        generateValue: true
+      - key: CALENDAR_TIME_ZONE
+        value: Asia/Kolkata
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_TRANSCRIBE_MODEL
+        value: gpt-4o-mini-transcribe
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+
+  - type: web
+    name: virtual-assistant
+    env: static
+    rootDir: frontend
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_SERVER_URL
+        sync: false
+      - key: VITE_SPEECH_PROVIDER
+        value: auto
+      - key: VITE_WAKE_WORD_PROVIDER
+        value: browser
+      - key: VITE_SPEECH_RECOGNITION_LANG
+        value: en-IN
+      - key: VITE_TTS_LANG
+        value: en-IN
+      - key: VITE_ASSISTANT_RESPONSE_LANG
+        value: en
+      - key: VITE_PICOVOICE_ACCESS_KEY
+        sync: false
+      - key: VITE_PORCUPINE_KEYWORD_PATH
+        value: /voice-models/assistant.ppn
+      - key: VITE_PORCUPINE_MODEL_PATH
+        value: /porcupine_params.pv
+      - key: VITE_PORCUPINE_SENSITIVITY
+        value: "0.65"
+      - key: VITE_VOSK_MODEL_PATH
+        value: /voice-models/vosk-model-small-en-us-0.15.tar.gz
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
