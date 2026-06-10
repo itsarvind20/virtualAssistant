@@ -10,7 +10,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        sync: false
+        value: https://my-assistant-suzo.onrender.com
       - key: MONGODB_URL
         sync: false
       - key: JWT_SECRET
@@ -28,7 +28,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        sync: false
+        value: https://my-assistant-8pvv.onrender.com/api/calendar/oauth/callback
       - key: GOOGLE_TOKEN_ENCRYPTION_SECRET
         generateValue: true
       - key: CALENDAR_TIME_ZONE
@@ -51,7 +51,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_SERVER_URL
-        sync: false
+        value: https://my-assistant-8pvv.onrender.com
       - key: VITE_SPEECH_PROVIDER
         value: auto
       - key: VITE_WAKE_WORD_PROVIDER
