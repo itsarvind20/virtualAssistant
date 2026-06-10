@@ -65,13 +65,13 @@ services:
       - key: VITE_PICOVOICE_ACCESS_KEY
         sync: false
       - key: VITE_PORCUPINE_KEYWORD_PATH
-        value: /voice-models/assistant.ppn
+        value: ""
       - key: VITE_PORCUPINE_MODEL_PATH
-        value: /porcupine_params.pv
+        value: ""
       - key: VITE_PORCUPINE_SENSITIVITY
         value: "0.65"
       - key: VITE_VOSK_MODEL_PATH
-        value: /voice-models/vosk-model-small-en-us-0.15.tar.gz
+        value: ""
     routes:
       - type: rewrite
         source: /*

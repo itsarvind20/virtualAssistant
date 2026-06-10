@@ -35,6 +35,13 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/calendar", calendarRouter);
 
+app.get("/", (req, res) => {
+    res.status(200).json({
+        name: "virtual-assistant-api",
+        status: "ok"
+    });
+});
+
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "ok" });
 });

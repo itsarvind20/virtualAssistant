@@ -67,7 +67,7 @@ export const classifyLocalIntent = (text = "") => {
     return { type: "pause-media", userInput: command, response: "Paused." };
   }
 
-  if (/^(play|resume|continue)$/.test(command) || /\b(resume|continue|play song|play music)\b/.test(command)) {
+  if (/^(resume|continue)$/.test(command) || /\b(resume|continue)\b/.test(command)) {
     return { type: "resume-media", userInput: command, response: "Resuming." };
   }
 
@@ -123,11 +123,12 @@ export const classifyLocalIntent = (text = "") => {
 
   if (/\b(play|plau|listen to|put on)\b/.test(command)) {
     const query = cleanQuery(command, [/\b(play|plau|listen to|put on)\b/g, /\b(song|music|track)\b/g]);
+    const musicQuery = query || "music";
 
     return {
       type: "play-music",
-      userInput: query,
-      response: `Playing ${formatTarget(query)} on YouTube Music.`,
+      userInput: musicQuery,
+      response: `Playing ${formatTarget(musicQuery)} on YouTube Music.`,
     };
   }
 
@@ -143,6 +144,15 @@ export const executeLocalBrowserAction = ({ type, userInput }) => {
   }
 
   if (type === "youtube-search" || type === "youtube-play") return true;
+
+  if (type === "play-music" || type === "youtube-music-play") {
+    const url = encodedInput
+      ? `https://music.youtube.com/search?q=${encodedInput}`
+      : "https://music.youtube.com";
+
+    window.open(url, "_blank");
+    return true;
+  }
 
   if (type === "open-youtube") {
     window.open("https://www.youtube.com", "_blank");

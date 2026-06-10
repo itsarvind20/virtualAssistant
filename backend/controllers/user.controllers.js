@@ -130,7 +130,7 @@ const inferObviousCommandType = (text = "") => {
     if (/\b(end conversation|end chat|finish conversation|close conversation|that is all|that s all|goodbye|bye|we are done|conversation over)\b/.test(normalized)) return "end-conversation";
     if (/\b(next|skip|skip song|next song|next track)\b/.test(normalized)) return "next-media";
     if (/\bpause\b/.test(normalized)) return "pause-media";
-    if (/^(play|resume|continue)$/.test(normalized) || /\b(resume|continue|play song|play music)\b/.test(normalized)) return "resume-media";
+    if (/^(resume|continue)$/.test(normalized) || /\b(resume|continue)\b/.test(normalized)) return "resume-media";
 
     if (/\b(time|current time)\b/.test(normalized)) return "get-time";
     if (/\b(date|today date)\b/.test(normalized)) return "get-date";
