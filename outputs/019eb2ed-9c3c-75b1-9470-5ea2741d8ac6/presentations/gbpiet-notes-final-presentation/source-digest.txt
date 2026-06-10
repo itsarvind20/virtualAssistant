@@ -1,0 +1,537 @@
+# DOCX HEADINGS
+- A [Normal]
+- BACHELOR OF TECHNOLOGY [Normal]
+- COMPUTER SCIENCE & ENGINEERING [Normal]
+- DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING [Normal]
+- G.B. PANT INSTITUTE OF ENGINEERING AND TECHNOLOGY, PAURI GARHWAL, UTTARAKHAND [Normal]
+- MAY-2026 [Normal]
+- CANDIDATE’S DECLARATION [Heading 1]
+- ACKNOWLEDGEMENT [Heading 1]
+- ABSTRACT [Heading 1]
+- KEYWORDS [Normal]
+- TABLE OF CONTENTS [Heading 1]
+- LIST OF FIGURES [Heading 1]
+- LIST OF TABLES [Heading 1]
+- 1. INTRODUCTION [Heading 1]
+- 1.1 Project Background [Heading 1]
+- 1.2 Problem Statement [Normal]
+- 1.3 Objectives [Normal]
+- 1.4 Scope [Normal]
+- 1.5 Motivation [Normal]
+- 1.6 Evaluation Metrics [Normal]
+- 2. LITERATURE REVIEW [Heading 1]
+- 2.1 Overview [Normal]
+- 2.2 Academic Resource Platforms [Normal]
+- 2.3 Community Q&A Systems [Normal]
+- 2.4 Social Community Features [Normal]
+- 2.5 AI Study Assistants [Normal]
+- 2.6 Summary [Normal]
+- 3. REQUIREMENT ANALYSIS [Heading 1]
+- 3.1 Functional Requirements [Heading 2]
+- 3.2 Non-Functional Requirements [Heading 2]
+- 3.3 User Roles [Heading 2]
+- 3.4 Use Cases [Heading 2]
+- 4. SYSTEM REQUIREMENTS [Heading 1]
+- 4.1 Software Requirements [Heading 2]
+- 4.2 Hardware Requirements [Heading 2]
+- 4.3 External Service Requirements [Heading 2]
+- 5. SYSTEM ARCHITECTURE [Heading 1]
+- 5.1 Architecture Overview [Heading 2]
+- 5.2 Frontend Architecture [Heading 2]
+- 5.3 Backend Architecture [Heading 2]
+- 5.4 Database and Storage Architecture [Heading 2]
+- 5.5 Authentication and Security Architecture [Heading 2]
+- 6. SYSTEM DESIGN [Heading 1]
+- 6.1 Data Model Design [Heading 2]
+- 6.2 API Design [Heading 2]
+- 6.3 UI/UX Design [Heading 2]
+- 6.4 Responsive Design [Heading 2]
+- 6.5 Reusable Components [Heading 2]
+- 7. IMPLEMENTATION [Heading 1]
+- 7.1 Authentication Module [Heading 2]
+- The authentication module is responsible for providing secure access control to the application and ensuring that only authorized users can access protected features. It supports email/password registration, login, Google authentication, profile completion, logout functionality, and current-user session restoration. The module acts as the entry point to the system and is designed to provide both security and user convenience. [Heading 2]
+- Passwords are never stored in plain text. Instead, they are securely hashed using the bcrypt library before being stored in the database. During login, entered credentials are verified against the stored hashed password. After successful authentication, JWT access and refresh tokens are generated and stored in HTTP-only cookies. This approach improves security by preventing client-side scripts from directly accessing authentication tokens. [Heading 2]
+- The module also supports Google OAuth authentication to simplify account creation and login. Users can sign in using their Google account without manually creating credentials. After successful authentication, new users are redirected to the profile completion page where academic details such as branch, year, and role are collected. Existing users are redirected directly to the dashboard. [Heading 2]
+- Session persistence is implemented through a current-user API endpoint which restores authentication status whenever the application is reloaded. This allows users to continue using the platform without repeatedly logging in. [Heading 2]
+- 7.2 Notes Module [Heading 2]
+- 7.3 Q&A Module [Heading 2]
+- 7.4 Community Posts Module [Normal]
+- 7.5 Profile and Settings Module [Normal]
+- The follow system enables users to build academic networks by connecting with active contributors. Report functionality is also integrated directly into user profiles to support moderation and accountability. Profile statistics provide visibility into user engagement and contribution levels. [Heading 2]
+- The settings module provides interfaces for updating account details, changing passwords, managing profile images, editing interests and technical skills, and maintaining social media links. Users can personalize their profiles according to their academic interests and professional goals. [Heading 2]
+- A comprehensive account deletion mechanism has also been implemented. When an account is removed, associated content including notes, posts, answers, comments, likes, follow relationships, reports, and uploaded files are deleted where applicable. This ensures database consistency and proper resource cleanup. [Heading 2]
+- 7.6 Leaderboard and Activity Dashboard [Heading 2]
+- 7.7 AI Chatbot Module [Heading 2]
+- 7.8 Report and Moderation Module [Heading 2]
+- 8. TESTING AND VALIDATION [Heading 1]
+- 8.1 Testing Strategy [Heading 2]
+- Testing was performed by validating individual modules, checking API behaviour, verifying frontend state updates, reviewing responsive layout behaviour, and running build/lint checks. The focus was on functional correctness, upload behaviour, authentication, UI responsiveness, and integration between frontend and backend. [Heading 2]
+- The testing process followed a modular approach in which each major component of the application was tested independently before validating complete user workflows. Both frontend and backend functionality were verified to ensure that requests, responses, state management, and database operations worked correctly. Special attention was given to authentication flows, file uploads, user interactions, and AI chatbot integration because these modules involve communication between multiple services. [Heading 2]
+- In addition to functionality testing, usability testing was performed to ensure that users could navigate the platform smoothly and complete common tasks without confusion. Error scenarios such as invalid login attempts, missing form fields, unsupported file uploads, and unauthorized actions were also reviewed. [Heading 2]
+- 8.2 Functional Testing [Heading 2]
+- 8.3 UI and Responsive Testing [Heading 2]
+- 8.4 Build and Syntax Validation [Heading 2]
+- Frontend linting was run using npm run lint. Frontend production build was run using npm run build. Backend syntax checks were performed on edited controller and route files using node --check. These checks helped catch import, JSX, and syntax errors before finalizing the project. [Heading 2]
+- Build validation was performed regularly throughout development to ensure that newly added features did not introduce compilation or runtime issues. Production build generation verified that the frontend could be optimized successfully for deployment. Backend syntax validation ensured that routing logic, controllers, middleware, and utility functions remained free from syntax-related errors. [Heading 2]
+- These validation procedures improved overall code quality and reduced the possibility of deployment failures during project submission and demonstration. [Heading 2]
+- 8.5 Result Analysis [Heading 2]
+- 9. RESULTS AND DISCUSSION [Heading 1]
+- 9.1 Major Outcomes [Heading 2]
+- 10. FUTURE SCOPE AND LIMITATIONS [Heading 1]
+- 10.1 Future Scope [List Bullet]
+- 10.2 Limitations [List Bullet]
+- 11. CONCLUSION [Heading 1]
+- 12. REFERENCES [Heading 1]
+- 13. APPENDIX [Heading 1]
+- 13.1 Important Environment Variables [Heading 2]
+- 13.2 Major API Groups [Heading 2]
+- 13.3 Project Summary for Evaluation [Heading 2]
+- 14. DETAILED MODULE DESCRIPTION [Heading 1]
+- 14.1 Authentication and Session Management [Heading 2]
+- 14.2 Notes and Resource Sharing [Heading 2]
+- 14.3 Q&A Knowledge Sharing [Heading 2]
+- 14.4 Community Feed [Heading 2]
+- 14.5 User Profiles and Academic Identity [Heading 2]
+- 14.6 Leaderboard and Analytics [Heading 2]
+- 14.7 AI Study Assistant [Heading 2]
+- 14.8 Moderation and Safety [Heading 2]
+- 15. PROJECT FILE STRUCTURE [Heading 1]
+- 15.1 Important Development Decisions [Heading 2]
+- 16. DETAILED API AND BACKEND DESIGN [Heading 1]
+- 16.1 User API Design [Heading 2]
+- 16.2 Notes API Design [Heading 2]
+- 16.3 Q&A and Answer API Design [Heading 2]
+- 16.4 Post API Design [Heading 2]
+- 16.5 Upvote, Follow, and Activity API Design [Heading 2]
+- 17. SECURITY ANALYSIS [Heading 1]
+- 17.1 Authentication Security [Heading 2]
+- 17.2 Authorization and Ownership [Heading 2]
+- 17.3 Upload Safety [Heading 2]
+- 17.4 Security Improvements for Production [Heading 2]
+- 18. USER INTERFACE AND EXPERIENCE REVIEW [Heading 1]
+- 18.1 Visual Theme [Heading 2]
+- 18.2 Navigation Design [Heading 2]
+- 18.3 Responsive Improvements [Heading 2]
+- 18.4 Feedback and Interaction [Heading 2]
+- 19. DEPLOYMENT AND CONFIGURATION [Heading 1]
+- 19.1 Local Development [Heading 2]
+- 19.2 Frontend Deployment [Heading 2]
+- 19.3 Backend Deployment [Heading 2]
+- 19.4 Deployment Checklist [Heading 2]
+- 20. MAINTENANCE AND EXTENSIBILITY [Heading 1]
+
+# DOCX BODY SAMPLE
+- “GBPIET Notes: College Community Web Application”
+- A
+- Project Report
+- submitted in partial fulfillment of the requirements
+- for the award of the degree of
+- BACHELOR OF TECHNOLOGY
+- in
+- COMPUTER SCIENCE & ENGINEERING
+- by
+- Student Name Roll No.
+- Saket Singh 2200244
+- Vaibhav Rawat 2200541
+- Yash Bhatt 2200258
+- Akshay Tomar 2200211
+- Under the guidance of
+- Dr. Papendra Kumar
+- (Assistant Professor)
+- DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING
+- G.B. PANT INSTITUTE OF ENGINEERING AND TECHNOLOGY, PAURI GARHWAL, UTTARAKHAND
+- MAY-2026
+- CANDIDATE’S DECLARATION
+- We hereby certify that the project work entitled “GBPIET Notes: College Community Web Application”, submitted in partial fulfilment of the requirements for the award of the Degree of Bachelor of Technology in Computer Science and Engineering to the Department of Computer Science and Engineering, is an authentic record of our original work carried out under the guidance of the project coordinator and faculty members of the department.
+- The matter presented in this project report has not been submitted by us for the award of any other degree or diploma of this or any other institute. The system design, documentation, implementation, testing, and conclusions presented in this report are based on the work completed during the development of the GBPIET Notes platform.
+- Student Name Roll No.
+- Saket Singh 220090101039
+- Vaibhav Rawat 220090107039
+- Yash Bhatt 220090101053
+- Akshay Tomar 220090101009
+- ACKNOWLEDGEMENT
+- We wish to express our deep gratitude to our guide, Mr. Papendra Kumar, for all advice. encouragement and constant support he has given us throughout our project work. This work would not have been possible without his support and valuable suggestions.
+- We sincerely thank our respected Program Coordinator of the Department, Dr. Surabhi Lingwal, Assistant Professor Department of Computer Science & Engineering for his great support in Coordinating project Schedules, Resource equipment and information. Liaising with group members to Define project requirements, scope and objective in doing our project.
+- We are also grateful to Dr. Bhumika Gupta, Head of Computer Science & Engineering for giving us the necessary facilities to carry out our project work successfully.
+- We would like to thank all our friends for their help and constructive criticism during our project work. Finally, we have no words to express our sincere gratitude to our parents who have shown us this world and for every support they have given us.
+- Student Name Roll No.
+- Saket Singh 220090101039
+- Vaibhav Rawat 220090107039
+- Yash Bhatt 220090101053
+- Akshay Tomar 220090101009
+- ABSTRACT
+- The rapid growth of digital learning has increased the demand for centralized academic platforms that enable efficient knowledge sharing, collaboration, and student engagement. In many educational institutions, study materials, notes, previous year question papers, and academic discussions are often scattered across multiple messaging groups, cloud drives, and social media platforms. This fragmentation makes it difficult for students to access relevant resources, track useful contributions, and receive timely academic support. To address these challenges, GBPIET Notes has been developed as a comprehensive college community web application that integrates academic resource sharing, collaborative learning, social interaction, and AI-powered study assistance within a single platform.
+- GBPIET Notes is a full-stack web application designed specifically for the students, faculty members, and administrators of G.B. Pant Institute of Engineering and Technology. The platform provides a centralized ecosystem where users can upload, manage, search, and download academic resources while simultaneously participating in question-answer discussions, community interactions, and collaborative learning activities. The system also incorporates user profiles, follow mechanisms, contribution tracking, leaderboards, activity monitoring, and content moderation to encourage meaningful participation and maintain platform quality.
+- The application is implemented using modern web technologies including React.js and Tailwind CSS for the frontend user interface, Express.js and Node.js for backend services, MongoDB for database management, and Supabase Storage for secure cloud-based file storage. Authentication and authorization are handled through JWT-based session management and Google OAuth integration, ensuring secure and seamless access to the platform. The system follows a responsive design approach, allowing users to access all functionalities effectively across mobile devices, tablets, laptops, and desktop systems.
+- A significant feature of the platform is its AI-powered study assistant, developed using the Gemini API. The assistant enables users to interact with study materials through natural language queries and supports analysis of PDFs, typed notes, handwritten notes, images, and text documents. This functionality enhances self-learning by providing instant academic assistance and improving accessibility to educational content. In addition, the platform incorporates a report-based moderation mechanism that allows users to report inappropriate content or behaviour, helping maintain a safe and productive academic environment.
+- The system consists of several interconnected modules including user authentication, profile management, academic resources and notes sharing, Q&A discussions, community posts, upvote and reputation systems, follow networks, user directory management, leaderboard and contribution analytics, AI-assisted learning support, and moderation services. These modules work together to create an integrated academic community where students can not only access resources but also actively contribute knowledge and collaborate with peers.
+- The primary objective of GBPIET Notes is to reduce dependency on scattered communication channels and unorganized file-sharing methods by providing a structured, searchable, and community-driven academic platform. By combining resource management, social collaboration, and artificial intelligence, the system aims to improve academic productivity, encourage knowledge sharing, and create a sustainable digital learning ecosystem for the college community. The project demonstrates the practical application of modern full-stack development technologies in solving real-world educational challenges and provides a scalable foundation for future enhancements such as advanced recommendation systems, notification services, administrative dashboards, and intelligent content retrieval mechanisms.
+- KEYWORDS
+- GBPIET Notes
+- College Community Web Application
+- Academic Knowledge Sharing
+- Student Collaboration Platform
+- Resource Management System
+- Full-Stack Web Development
+- React.js
+- Express.js
+- Node.js
+- MongoDB
+- Supabase Storage
+- Google OAuth Authentication
+- JSON Web Token (JWT)
+- Artificial Intelligence Integration
+- Gemini API
+- AI Study Assistant
+- Question and Answer System
+- Community Engagement
+- User Contribution Tracking
+- Leaderboard and Reputation System
+- Cloud-Based File Storage
+- Content Moderation
+- Responsive Web Design
+- Social Learning Platform
+- Academic Resource Repository
+- TABLE OF CONTENTS
+- LIST OF FIGURES
+- LIST OF TABLES
+- 1. INTRODUCTION
+- 1.1 Project Background
+- In most colleges, academic resources are distributed through informal channels such as messaging groups, personal drives, classroom announcements, and scattered file links. Although these methods are convenient for quick sharing, they often become difficult to manage over time. Students repeatedly ask for the same notes, question papers, assignments, and tutorials because the resources are not indexed, searchable, or linked to a contributor identity.
+- GBPIET Notes was designed as a solution to this problem. The platform provides a centralized academic community where notes, questions, answers, posts, profiles, and contribution data are connected together. Instead of treating notes as isolated files, the system treats academic material as a community resource that can be uploaded, liked, discussed, reported, and discovered.
+- The project also recognizes that modern students need more than file storage. They need a structured environment where they can ask doubts, receive answers, follow active contributors, see trending material, and get AI-based assistance for study content. For this reason, the platform includes Q&A, community posts, leaderboard analytics, and an AI chatbot in addition to the notes module.
+- The application is built as a full-stack web system. The frontend is created using React, Vite, Tailwind CSS, React Router, Axios, and Lucide icons. The backend is created with Node.js, Express.js, MongoDB, Mongoose, JWT authentication, Multer, Supabase Storage, and integration with Google OAuth and Gemini API.
+- 1.2 Problem Statement
+- Educational institutions continuously generate large volumes of academic content including lecture notes, assignments, laboratory manuals, tutorials, project resources, previous year question papers, and discussion materials. Despite the importance of these resources, their distribution is often decentralized and dependent on temporary communication channels such as messaging applications, email chains, and personal cloud storage accounts. As a result, students face significant difficulties in locating relevant study material when required.
+- One of the primary challenges is the absence of a centralized repository where academic resources can be stored, categorized, searched, and accessed efficiently. Students frequently spend considerable time searching for files that were previously shared in class groups or personal chats. This leads to duplication of effort and inefficient utilization of educational resources.
+- Another challenge is the lack of a structured academic discussion environment. Students regularly encounter doubts related to course content, assignments, programming problems, and examination preparation. Existing communication channels are not designed for long-term knowledge retention, causing valuable discussions and solutions to disappear within large volumes of messages. Consequently, the same questions are repeatedly asked and answered.
+- The absence of contributor recognition also creates a limitation. Students who actively share notes, answer doubts, and assist their peers often receive little acknowledgement for their efforts. Without proper incentives, participation in academic communities tends to decline over time.
+- Content moderation presents another significant concern. Open platforms encourage collaboration but can also allow inappropriate or irrelevant content to be shared. Therefore, a balance must be maintained between freedom of contribution and accountability.
+- Additionally, modern students increasingly require intelligent assistance while studying. Traditional search mechanisms often fail to provide quick explanations for concepts contained in PDFs, handwritten notes, images, and other learning materials. The growing adoption of artificial intelligence in education highlights the need for integrated AI-powered study support systems.
+- Therefore, there is a need for a unified platform that combines academic resource sharing, collaborative discussions, contributor recognition, content moderation, and AI-assisted learning within a single secure and scalable environment. GBPIET Notes aims to address these challenges through a community-driven academic platform specifically designed for college students and faculty members.
+- 1.3 Objectives
+- The primary objective of GBPIET Notes is to develop a centralized digital ecosystem that facilitates efficient academic collaboration, resource sharing, and knowledge management among students and faculty members.
+- The specific objectives of the project are as follows:
+- • To design and develop a full-stack web application that serves as a centralized platform for academic resource sharing and community interaction.
+- • To implement secure authentication and authorization mechanisms using email/password login, Google OAuth integration, and JWT-based session management.
+- • To provide a structured repository where users can upload, organize, search, preview, download, and manage academic resources such as notes, assignments, tutorials, and previous year question papers.
+- • To create an interactive Question and Answer module that allows students to post doubts, attach images, categorize questions through tags, and receive detailed responses from other users.
+- • To establish a community discussion platform where users can share updates, announcements, study experiences, and academic insights through posts and comments.
+- • To implement social networking features including follow systems, contributor profiles, likes, upvotes, and activity tracking in order to encourage participation and collaboration.
+- • To provide comprehensive user profiles containing academic information, interests, technical skills, achievements, contributions, and engagement statistics.
+- • To develop a leaderboard and reputation system that recognizes active contributors and motivates students to participate in knowledge-sharing activities.
+- • To implement a moderation and reporting mechanism that allows users to report inappropriate content while maintaining platform accountability and content quality.
+- • To integrate an AI-powered study assistant capable of answering questions, analyzing PDFs, interpreting handwritten notes, processing images, and assisting users with academic queries.
+- • To ensure that the platform follows responsive design principles so that users can access all features effectively across mobile phones, tablets, laptops, and desktop systems.
+- • To develop a scalable architecture that can support future enhancements such as notification systems, recommendation engines, administrative dashboards, and advanced AI capabilities.
+- 1.4 Scope
+- The scope of GBPIET Notes extends beyond a traditional notes-sharing website and encompasses the development of a complete academic community platform for educational institutions.
+- The system supports multiple user categories including students, faculty members, and administrators. Each user can participate in academic activities according to their role and permissions. The platform provides facilities for uploading, organizing, browsing, and interacting with educational resources.
+- The scope includes implementation of modules such as authentication, profile management, academic resource sharing, question and answer discussions, community posts, user engagement systems, leaderboards, AI assistance, moderation workflows, and contact management.
+- The application supports a wide range of educational content formats including PDF documents, images, handwritten notes, typed notes, assignments, tutorials, study guides, and question papers. This flexibility allows the platform to accommodate different learning styles and academic requirements.
+- The project also includes cloud-based file storage using Supabase Storage, ensuring secure and reliable handling of uploaded resources. Integration with Google OAuth simplifies user onboarding while JWT-based authentication ensures secure access to protected resources.
+- Artificial Intelligence integration forms an important part of the project scope. The AI chatbot enables students to obtain explanations, summaries, and academic assistance directly within the platform. Support for uploaded documents and images further enhances the usefulness of the system.
+- Although the current implementation focuses on GBPIET students and faculty members, the architecture is sufficiently generic to be adapted for use by other educational institutions. Future extensions may include multi-college support, administrative dashboards, recommendation systems, notification services, advanced analytics, and enterprise-level deployment capabilities.
+- 1.5 Motivation
+- The motivation for developing GBPIET Notes originated from real-world academic challenges experienced by students throughout their educational journey. During semester studies, students regularly exchange notes, assignments, and examination materials through messaging groups and personal contacts. While these methods appear convenient initially, they become increasingly inefficient as the volume of shared content grows.
+- Important academic resources are often lost within lengthy chat histories, forcing students to repeatedly request the same materials. New students face additional difficulties because they have limited access to previously shared resources and often depend on senior students for academic guidance.
+- Another motivating factor was the absence of a unified platform that combines resource sharing with collaborative learning. Existing solutions generally focus on either file sharing or discussion forums, but rarely integrate both functionalities within a single environment. As a result, academic content and academic discussions remain disconnected.
+- The increasing adoption of Artificial Intelligence in education also served as a major source of inspiration. Students increasingly seek immediate explanations, summaries, and conceptual assistance while studying. Integrating AI capabilities directly into the platform allows learners to receive academic support without relying on multiple external tools.
+- Furthermore, the project aims to encourage a culture of knowledge sharing by recognizing contributors through credits, likes, followers, activity statistics, and leaderboard rankings. Such recognition helps create a sustainable academic ecosystem where users are motivated to contribute high-quality resources and assist their peers.
+- Ultimately, the project was motivated by the vision of creating a centralized digital academic community that improves accessibility, collaboration, engagement, and learning outcomes for students and faculty members.
+- 1.6 Evaluation Metrics
+- The effectiveness of the proposed system is evaluated using several functional, technical, usability, and performance-based metrics.
+- Functional evaluation focuses on verifying that all major modules operate according to their intended design. Authentication workflows are tested to ensure secure registration, login, logout, Google sign-in, and session management. Resource management functions are evaluated by validating successful upload, storage, retrieval, preview, and download operations.
+- The Question-and-Answer module is evaluated based on the correctness of question creation, answer submission, image handling, upvote functionality, and user interaction mechanisms. Similarly, community features are tested for post creation, commenting, liking, editing, deleting, and reporting operations.
+- Usability evaluation examines the responsiveness and accessibility of the platform across multiple devices and screen sizes. The interface is tested on mobile phones, tablets, laptops, and desktop systems to ensure consistent user experience.
+- Performance evaluation considers system responsiveness, API execution time, database interactions, file upload handling, and cloud storage operations. The platform is assessed to ensure smooth performance under normal user workloads.
+- The AI chatbot module is evaluated based on response generation quality, file processing capability, streaming response functionality, and its ability to assist users with academic queries.
+- Security evaluation includes verification of JWT authentication, access control mechanisms, secure password storage, role-based permissions, report moderation workflows, and account management features.
+- Finally, overall project success is measured by the platform's ability to centralize academic resources, improve collaboration, promote knowledge sharing, and provide a scalable foundation for future enhancements.
+- 2. LITERATURE REVIEW
+- 2.1 Overview
+- Academic web applications have evolved from static portals into interactive systems that combine learning resources, communication, analytics, and personalization. A modern academic platform must support structured content, authentication, mobile usability, social interaction, and integration with cloud services.
+- GBPIET Notes draws ideas from learning management systems, question-answering communities, social feeds, contribution tracking platforms, and AI assistants. However, it is designed specifically for a college-level peer learning environment rather than for a general public audience.
+- With the increasing adoption of digital learning methods, students expect platforms that provide both academic content and interactive engagement. Modern educational systems are moving beyond simple content delivery and focusing on collaborative learning experiences. This shift has influenced the design of GBPIET Notes, where learning resources, community participation, and intelligent assistance are integrated into a single platform. The application aims to bridge the gap between traditional resource repositories and modern social learning environments.
+- 2.2 Academic Resource Platforms
+- Traditional academic resource systems mainly focus on storing documents. They often provide folders, file names, and download links. While this is useful, such systems usually lack social context, contributor information, likes, comments, and student discussions.
+- GBPIET Notes extends this idea by connecting resources to users, profiles, credits, likes, comments, and leaderboard data. This makes resource sharing more interactive and gives visibility to students who contribute original content.
+- Many educational institutions rely on cloud drives and departmental websites for resource distribution. Although these solutions provide accessibility, they often lack efficient search capabilities and meaningful user engagement. Students are unable to identify active contributors or evaluate the usefulness of shared content. By integrating resource management with user interaction and contribution tracking, GBPIET Notes creates a more collaborative and sustainable academic knowledge repository.
+- 2.3 Community Q&A Systems
+- Community Q&A systems are useful because they allow problems and answers to remain visible beyond a single conversation. Platforms such as Stack Overflow demonstrate the importance of searchable questions, answers, votes, and user reputation.
+- The Q&A module in GBPIET Notes adapts these ideas for an academic environment. Questions include titles, descriptions, tags, and optional images. Answers can also include images, which is useful for mathematical derivations, circuit diagrams, handwritten explanations, and screenshots.
+- A structured Q&A system improves knowledge retention by preserving discussions that would otherwise disappear in chat-based communication channels. Students can search previously answered questions and benefit from solutions provided by their peers. The inclusion of tags and image support further improves content organization and makes the platform suitable for technical, scientific, and engineering subjects where visual explanations are often necessary.
+- 2.4 Social Community Features
+- Modern web applications often use social interaction patterns such as following users, liking posts, commenting, and viewing profiles. These features help users discover active contributors and stay engaged with the platform.
+- The community module in this project includes a feed-style layout, user suggestions, post composer, image carousel, comments, likes, and profile navigation. This helps the platform feel like an academic social network rather than only a file repository.
+- Social features also encourage continuous participation and content creation. When users receive likes, followers, and recognition for their contributions, they become more motivated to share valuable resources and assist others. The combination of academic content and social engagement creates a collaborative environment where students can learn from both resources and peer interactions.
+- 2.5 AI Study Assistants
+- AI assistants can support students by summarizing notes, explaining diagrams, generating important questions, and providing references for further study. Large language models are increasingly used for educational support, but they must be integrated carefully with context and source material.
+- The AI chatbot in GBPIET Notes uses Gemini API and a simple vector-style retrieval approach over project content. It is implemented as an independent chat page, supports file uploads, streams responses, and stores local chat history for user convenience.
+- Recent advancements in artificial intelligence have made conversational learning tools more accessible and effective. Students can now receive personalized explanations and guidance without waiting for instructor availability. The AI assistant in GBPIET Notes enhances the learning experience by allowing users to interact directly with study materials such as PDFs, images, handwritten notes, and text documents. This functionality improves accessibility and promotes self-directed learning.
+- 2.6 Summary
+- The literature and platform review shows that an effective academic community application should combine resource sharing, discussion, user identity, moderation, analytics, and AI assistance. GBPIET Notes integrates these areas into one college-focused platform.
+- Unlike conventional academic portals that focus only on content distribution, the proposed system combines academic collaboration, social interaction, contribution recognition, and intelligent assistance within a unified environment. The concepts studied in this review provide the foundation for the design and implementation of GBPIET Notes and demonstrate the relevance of integrating multiple educational technologies into a single platform.
+- 3. REQUIREMENT ANALYSIS
+- 3.1 Functional Requirements
+- 3.2 Non-Functional Requirements
+- Responsiveness: The UI should work on mobile, tablet, laptop, and desktop screens.
+- Security: Passwords must be hashed, auth cookies must be protected, and protected APIs must verify JWT tokens.
+- Usability: Upload forms should include labels, placeholders, warnings, clear buttons, and consistent feedback.
+- Performance: Upload responses and page interactions should remain fast for normal project usage.
+- Maintainability: Reusable UI components should be used for repeated patterns such as avatars, buttons, cards, modals, and menus.
+- Reliability: File uploads should be stored in cloud storage and deletions should clean related data where possible.
+- Scalability: The architecture should support future admin dashboard, notification system, and advanced AI retrieval.
+- 3.3 User Roles
+- 3.4 Use Cases
+- A student logs in with Google, completes profile, uploads DBMS notes, and receives likes from classmates.
+- A user asks a question with tags and an image of a handwritten doubt; other users answer with explanation and images.
+- A student follows a top contributor and later visits their profile to download uploaded notes.
+- A user opens the AI chatbot, uploads a PDF, and asks for an exam-friendly summary.
+- A user reports inappropriate content owner from a card menu, and can undo the report if it was accidental.
+- A user checks leaderboard to see weekly, monthly, and contribution graph activity.
+- 4. SYSTEM REQUIREMENTS
+- 4.1 Software Requirements
+- 4.2 Hardware Requirements
+- 4.3 External Service Requirements
+- MongoDB URI for database connection.
+- Supabase project URL and key for storage operations.
+- Google OAuth Web Application Client ID for login/signup.
+- Gemini API key and selected Gemini model for AI chatbot.
+- Optional email credentials and Mailboxlayer key for contact email validation.
+- 5. SYSTEM ARCHITECTURE
+- 5.1 Architecture Overview
+- GBPIET Notes follows a client-server architecture. The frontend is responsible for user interface, routing, responsive layouts, form handling, file selection, and API interaction. The backend handles authentication, authorization, validation, database operations, file upload coordination, AI communication, and response formatting.
+- Figure 1: High-Level System Architecture
+- 5.2 Frontend Architecture
+- The frontend is built with React and Vite. React Router manages page navigation, while Axios communicates with the backend API using the configured base URL. Tailwind CSS is used for styling, responsive utilities, spacing, cards, buttons, and layout.
+- The frontend is organized into pages, components, context providers, services, utilities, and constants. Shared components such as UserAvatar, FollowButton, ReportUserButton, CardActionMenu, LikedUsersModal, AttachmentCarousel, UploadPolicyWarning, and ConfirmModal reduce duplication and keep the UI consistent.
+- 5.3 Backend Architecture
+- The backend uses Express.js with modular route files and controller files. Each major feature has a route group and a controller. Mongoose models represent persistent data entities such as User, Note, Question, Answer, Post, Upvote, Follow, and Report.
+- Middleware is used for JWT verification, optional authentication, role checks, file upload handling, AI upload handling, and centralized error handling. Utility files support Supabase uploads, email validation, AI vector retrieval, and reputation recalculation.
+- 5.4 Database and Storage Architecture
+- MongoDB stores structured application data such as users, notes metadata, Q&A records, posts, comments, upvotes, follows, reports, and profile fields. Supabase Storage stores binary files such as PDFs and images. The database stores public file URLs returned by Supabase.
+- 5.5 Authentication and Security Architecture
+- Figure 2: Authentication and Profile Completion Flow
+- Security is implemented through bcrypt password hashing, JWT access and refresh tokens, protected routes, owner checks, role checks where required, upload validation, report warnings, and moderation through report counts.
+- The application uses Cross-Origin Resource Sharing with credentials and sets Cross-Origin-Opener-Policy headers to support Google authentication popups.
+- 6. SYSTEM DESIGN
+- 6.1 Data Model Design
+- The data model is designed around users and their contributions. Users can create notes, questions, answers, and posts. They can also like content, follow other users, and report users. This produces a community graph where academic contribution, reputation, and interaction can be measured.
+- 6.2 API Design
+- The API follows REST-style route grouping. Each module has dedicated endpoints and uses JSON responses wrapped in a consistent ApiResponse structure. Errors are passed through ApiError and centralized error middleware.
+- 6.3 UI/UX Design
+- The UI uses soft blue and white visual language with rounded white cards, subtle borders, indigo action buttons, and clean typography. The design is inspired by modern SaaS dashboards and community platforms.
+- The navigation was converted from a sidebar into a responsive top navbar. On desktop, links are displayed horizontally. On mobile, a hamburger menu opens a slide-out menu. The profile avatar opens a dropdown with profile, settings, about, contact, and logout links.
+- Forms include labels and placeholders. Upload forms include a warning that inappropriate uploads may lead to account restrictions after reports. Modals are used for liked-user lists and delete confirmations.
+- 6.4 Responsive Design
+- Dashboard cards stack on mobile screens.
+- Community user suggestions are hidden on mobile and moved to a user page.
+- Q&A cards use a single-column layout.
+- Profile page switches from two-column layout to stacked mobile layout.
+- Leaderboard activity cards shrink and stack according to viewport.
+- Header width was fixed to avoid horizontal scrolling on mobile.
+- Post, question, answer, and note cards avoid overflow and keep content visible.
+- 6.5 Reusable Components
+- Reusable components were created for repeated interface patterns. This improves consistency and reduces future maintenance effort.
+- 7. IMPLEMENTATION
+- 7.1 Authentication Module
+- The authentication module is responsible for providing secure access control to the application and ensuring that only authorized users can access protected features. It supports email/password registration, login, Google authentication, profile completion, logout functionality, and current-user session restoration. The module acts as the entry point to the system and is designed to provide both security and user convenience.
+- Passwords are never stored in plain text. Instead, they are securely hashed using the bcrypt library before being stored in the database. During login, entered credentials are verified against the stored hashed password. After successful authentication, JWT access and refresh tokens are generated and stored in HTTP-only cookies. This approach improves security by preventing client-side scripts from directly accessing authentication tokens.
+- The module also supports Google OAuth authentication to simplify account creation and login. Users can sign in using their Google account without manually creating credentials. After successful authentication, new users are redirected to the profile completion page where academic details such as branch, year, and role are collected. Existing users are redirected directly to the dashboard.
+- Session persistence is implemented through a current-user API endpoint which restores authentication status whenever the application is reloaded. This allows users to continue using the platform without repeatedly logging in.
+- 7.2 Notes Module
+
+# DOCX TABLES
+Table 1
+S.No. | Contents | Page No.
+1. | Introduction 1.1 Project Background 1.2 Problem Statement 1.3 Objectives 1.4 Scope 1.5 Motivation 1.6 Evaluation Metrics | 1
+2. | Literature Review 2.1 Overview 2.2 Academic Resource Platforms 2.3 Community Q&A Systems 2.4 AI Study Assistants 2.5 Summary | 8
+3. | Requirement Analysis 3.1 Functional Requirements 3.2 Non-Functional Requirements 3.3 User Roles 3.4 Use Cases | 15
+4. | System Requirements 4.1 Software Requirements 4.2 Hardware Requirements 4.3 External Services | 22
+5. | System Architecture 5.1 Architecture Overview 5.2 Frontend Architecture 5.3 Backend Architecture 5.4 Database and Storage 5.5 Security Architecture | 26
+6. | System Design 6.1 Data Model Design 6.2 API Design 6.3 UI/UX Design 6.4 Responsive Design 6.5 Reusable Components | 35
+7. | Implementation 7.1 Authentication 7.2 Notes Module 7.3 Q&A Module 7.4 Community Module 7.5 Profile and Settings 7.6 Leaderboard 7.7 AI Chatbot 7.8 Reporting | 46
+8. | Testing and Validation 8.1 Testing Strategy 8.2 Functional Testing 8.3 UI Testing 8.4 Result Analysis | 63
+9. | Results and Discussion | 70
+10. | Future Scope and Limitations | 75
+11. | Conclusion | 80
+
+Table 2
+S. No. | Figure | Page
+1. | High-Level System Architecture | 28
+2. | Authentication and Profile Completion Flow | 31
+3. | Notes Upload and Discovery Workflow | 48
+4. | Q&A Interaction Flow | 52
+5. | AI Chatbot Processing Flow | 59
+6. | Report and Moderation Workflow | 62
+
+Table 3
+S. No. | Table | Page
+1. | Software Requirements | 23
+2. | Hardware Requirements | 24
+3. | Functional Requirements | 16
+4. | Major API Endpoints | 39
+5. | Testing Summary | 66
+
+Table 4
+Req. ID | Requirement | Description
+FR-01 | User Registration | Users can register using email/password or Google authentication.
+FR-02 | Profile Completion | Users complete name, username, branch, year, and user type after signup.
+FR-03 | Notes Upload | Authenticated users can upload academic notes with title, subject code, type, tags, description, and file.
+FR-04 | Notes Discovery | Users can browse notes, open files, download files, view details, like notes, and comment.
+FR-05 | Q&A | Users can ask tagged questions with optional images and answer questions with text/images.
+FR-06 | Community Posts | Users can create posts with text and multiple images, like posts, and comment.
+FR-07 | Follow System | Users can follow or unfollow other users.
+FR-08 | Profile Page | Profiles display identity, stats, bio, tech stack, interests, links, notes, Q&A, and posts.
+FR-09 | Leaderboard | System displays contribution activity and ranks contributors.
+FR-10 | AI Chatbot | Users can ask doubts, upload files, stream AI answers, and view chat history.
+FR-11 | Report System | Users can report or undo reports for inappropriate users/content owners.
+
+Table 5
+Role | Main Capabilities
+Student | Upload notes, ask questions, answer, post, like, follow, use AI chatbot, report users, manage profile.
+Faculty | All student capabilities with academic contributor identity.
+Admin | Admin role for elevated management and future moderation/role control.
+
+Table 6
+Software | Usage
+Operating System | Windows, Linux, or macOS for development and deployment.
+Frontend Runtime | Node.js with Vite development server.
+Frontend Libraries | React, Tailwind CSS, React Router, Axios, Lucide React, Framer Motion.
+Backend Runtime | Node.js with Express.js.
+Database | MongoDB with Mongoose ODM.
+Cloud Storage | Supabase Storage for PDFs, images, avatars, and cover images.
+Authentication | JWT cookies and Google Identity Services.
+AI Service | Gemini API for chatbot response generation.
+Code Editor | Visual Studio Code or any modern editor.
+Browser | Chrome, Edge, Firefox, or any modern web browser.
+
+Table 7
+Hardware | Minimum Requirement
+Processor | Dual-core processor or above.
+Memory | Minimum 4 GB RAM for local development; 8 GB recommended.
+Storage | At least 2 GB free storage for repository, dependencies, and build output.
+Network | Internet connection required for MongoDB Atlas, Supabase, Google OAuth, and Gemini API.
+Display | 1366 x 768 or higher recommended for development; application supports smaller mobile screens.
+
+Table 8
+React Frontend → Express Backend → MongoDB / Supabase / Gemini Frontend: pages, forms, cards, chat UI, responsive navigation Backend: REST APIs, auth middleware, controllers, models, upload handling Database: users, notes, questions, answers, posts, upvotes, follows, reports Storage: note files, post images, question images, answer images, avatars, covers External APIs: Google OAuth, Gemini AI, email validation
+
+Table 9
+Authentication Flow User submits email/password or Google credential Backend verifies credentials and creates access/refresh tokens Tokens are stored as HTTP-only cookies Protected routes verify JWT before allowing access Incomplete users are redirected to complete-profile page
+
+Table 10
+Model | Purpose | Important Fields
+User | Stores identity and profile information. | username, email, avatar, coverImage, role, branch, year, bio, credits, reportCount.
+Note | Stores academic resource metadata. | title, description, fileUrl, uploadedBy, originalStudent, subjectCode, tags.
+Question | Stores discussion questions. | title, description, images, tags, askedBy, answers, upvotes.
+Answer | Stores answers to questions. | content, images, answeredBy, question, upvotes.
+Post | Stores community posts. | text, images, postedBy, comments, upvotes.
+Upvote | Stores like/upvote records. | note, question, answer, post, upvotedBy.
+Follow | Stores follower relationships. | follower, following.
+Report | Stores moderation reports. | reporter, reportedUser, reason.
+
+Table 11
+Module | Endpoints Summary
+Users | register, login, google, current-user, profile, settings, avatar, cover, report, leaderboard.
+Notes | list, top, subject, detail, upload, comment, delete.
+Questions | list, ask, detail, delete.
+Answers | list by question, create, update, comment, delete.
+Posts | list, create, comment, update, delete.
+Upvotes | toggle, count, liked users.
+Follows | toggle, followers, following.
+AI Chat | health, message, streaming message.
+
+Table 12
+Component | Responsibility
+UserAvatar | Shows image avatar or initials fallback.
+UserProfileLink | Makes usernames navigate to profile pages.
+FollowButton | Shared follow/following button styling.
+ReportUserButton | Shared report/undo report logic.
+CardActionMenu | Three-dot menu for edit/delete/report actions.
+AttachmentCarousel | Displays multiple images in posts/questions/answers.
+LikedUsersModal | Displays users who liked content.
+ConfirmModal | Shows confirmation for delete actions.
+UploadPolicyWarning | Warns users before uploading public content.
+
+Table 13
+Notes Upload Workflow Authenticated user selects file and enters note metadata Frontend sends multipart form data to backend Backend uploads file to Supabase Storage MongoDB stores note metadata with current user as owner Note appears in notes list, profile, dashboard, and activity
+
+Table 14
+Q&A Interaction Flow User asks tagged question with optional images Other users click answer button on card Answers load inside the question card Users can like questions and answers Liked-user modal displays user list
+
+Table 15
+AI Chatbot Processing Flow User sends text and optional files Backend prepares prompt, history, and retrieved context Gemini API generates response Streaming endpoint sends chunks to frontend Frontend stores session in local history
+
+Table 16
+Report Toggle Workflow User clicks Report user Backend creates report if none exists User clicks Undo report Backend deletes report and recalculates count Ban state updates based on current report count
+
+Table 17
+Module | Test Cases | Result
+Authentication | Login, signup, Google auth, profile completion, logout | Passed
+Notes | Upload, list, preview, detail, open, download, like, comments | Passed
+Q&A | Ask question, tags, images, answers, likes, liked users | Passed
+Community | Post text/images, multiple image carousel, comments, edit, delete, likes | Passed
+Profile | Avatar, cover, stats, tabs, links, follow, report | Passed
+Settings | Update account, public profile, avatar, cover, password, delete account | Passed
+Leaderboard | Weekly/monthly/activity graph and leaderboard table | Passed
+AI Chatbot | Message send, streaming, file upload, history, clear chat | Passed
+Moderation | Report, undo report, report count update | Passed
+Responsive UI | Mobile, tablet, laptop, desktop layout checks | Passed
+
+Table 18
+Variable | Purpose
+VITE_API_BASE_URL | Frontend API base URL.
+VITE_GOOGLE_CLIENT_ID | Google OAuth web client ID used by frontend.
+CORS_ORIGIN | Allowed frontend origin for backend CORS.
+MONGODB_URI | MongoDB connection string.
+ACCESS_TOKEN_SECRET | JWT access token signing secret.
+REFRESH_TOKEN_SECRET | JWT refresh token signing secret.
+GOOGLE_CLIENT_ID | Google OAuth client ID used by backend verification.
+SUPABASE_URL | Supabase project URL.
+SUPABASE_ANON_KEY | Supabase key used for storage operations.
+GEMINI_API_KEY | Gemini API key for AI chatbot.
+GEMINI_MODEL | Selected Gemini model.
+
+Table 19
+Folder/File | Purpose
+backend/src/controllers | Contains business logic for users, notes, questions, answers, posts, follows, upvotes, contact, activity, and AI chat.
+backend/src/routes | Defines Express route groups and maps endpoints to controllers.
+backend/src/models | Contains Mongoose schemas for persistent application data.
+backend/src/middlewares | Contains authentication, role, upload, AI upload, optional auth, and error middleware.
+backend/src/utils | Contains helpers for API responses, errors, Supabase storage, email validation, AI vector search, and reputation updates.
+frontend/src/pages | Contains top-level page components for dashboard, notes, Q&A, community, profile, settings, leaderboard, AI chat, contact, and about.
+frontend/src/components | Contains reusable UI, notes, questions, posts, common, upload, upvote, dashboard, landing, and user components.
+frontend/src/context | Contains AuthContext and ToastContext.
+frontend/src/services/api.js | Central Axios instance for backend communication.
+frontend/src/index.css | Global Tailwind styles and shared design utilities.
+
+Table 20
+Challenge | Solution
+Responsive Header Overflow | The mobile header initially caused horizontal scrolling because the logo, navigation button, user button, and avatar consumed more width than the screen. The layout was corrected by constraining widths, adjusting spacing, enlarging the logo carefully, and moving the profile avatar inward.
+Google Authentication Warnings | Google Sign-In produced warnings when used inside unsupported web views or when client ID/origin settings were not correct. The solution was to clarify Google OAuth client setup, reduce repeated initialization, and ensure the correct VITE_GOOGLE_CLIENT_ID and backend GOOGLE_CLIENT_ID values are used.
+Q&A Liked User Modal | The original upvoter list behavior did not match the community liked-user modal. It was replaced with a functionally similar liked-user modal so the background blur, layout, and behavior are consistent.
+Multiple Image Uploads | Posts, questions, and answers needed support for more than one image. The solution was to store an images array in addition to the old imageUrl field and create a reusable carousel component.
+Profile Picture Override | Google accounts provided profile photos, but users needed to upload their own profile picture. The settings page now uploads avatar files to the backend, and the stored avatar overrides the Google image.
+Open Upload Policy | Initially note uploads were restricted by role. The product decision changed so every authenticated user can upload because the report system handles inappropriate content. The backend route was changed to require authentication only.
+Report Toggle | A one-way report action created duplicate-report errors. The report flow was changed into a toggle so users can report and undo reports from profiles and card menus.
+AI Chatbot Context | A full vector database would require extra services or cost. A free simple mode was implemented first using Gemini API and lightweight vector-style retrieval over project content.
+
+
+# PDF PAGES
+Page 1: A collaborative platform e m p o w e r i n g G B P I E T students to share notes, a c c e s s resources, a n d e n g a g e in a c a d e m i c discussions —built by developers, for t he c o m m u n i t y . P r e s e n t e d By : S a k e t S i n g h (2200244) V a i b h a v R a w a t (2200541) Y a s h B h a t t (2200258) A k s h a y T o m a r (2200211) S u p e r v i s e d By : Dr. Papendra Kumar Sir EDUCONNECT- ACADEMIC RESOURCES PLATFORM E D U C O N N E C T- A C A D E M I C R E S O U R C E S P L A T F O R M
+Page 2: Notes Repository U p l o a d a n d b row se h an dw rit t en notes, P Y Q s , a n d a s s i g n m e n t P D F s o rga n i z ed by su b ject c o d e a n d n a m e QnA Community A s k questions, share answers, a n d build reputation t h r o u g h c o m m u n i t y- driven k n o w l e d g e e x c h a n g e Role-Based Access Students, C l ass Representatives, Faculty, a n d A d m i n s— e a c h w i t h tailored p erm i ssi o n s a n d capabilities C R s a n d Facult y c a n contribute notes while st udent s e n g a g e t h r o u g h questions, answers, a n d upvotes. The platform creates a centralized hub for a c a d e m i c collaboration at GBPI ET. What We're Building WhatWe'reBuilding
+Page 3: Technical Foundation Complete Technical Foundation Complete Authentication System T e c h S t a c k : M o n g o D B for d at ab ase • S u p a b a s e for file st o rage • J W T for authentication • JWT - b a s e d secure authentication • Role -b a s e d a c c e s s control (Student, CR, Faculty, A d m i n ) • Session m a n a g e m e n t ready Notes Module • File u p l o a d to S u p a b a s e storage • S u b j e c t c o d e & n a m e t a g g i n g • P u b l i c read a c c e s s for all users • Upvot e functionality i m p l e m e n t e d MongoDB
+Page 4: ReactJS MongoDB NodeJS ExpressJS Python (Flask) Python NLTK Tech Stack 5 Frontend Database Backend AI Integeration
+Page 5: Login Registration Flow L o g i n & R e g i s t r a t i o n F l o w 01 User Registration S t u d e n t s s i g n up wit h college email, select role (Student/CR), a n d create secure credentials 02 E m a i l Verification JWT t o ke n sent to verify college email address a n d activate a c c o u n t 03 S e c u r e L o g i n Aut hent icat ed a c c e s s wit h role -b a s e d redirects to appropriate d a s h b o ar d
+Page 6: Home Page Hero Section Home Page & Hero Section L a n d i n g E x p e r i e n c e C l e a n hero section w e l c o m e s users wit h q u i c k access to core features. S e a r c h bar enables instant note discovery by subject, code, or keyword. R e c e n t activity feed s h o w s latest u p l o a ds a n d t rending questions. Q u i c k action but t ons provide one -click a c c e s s to u p l o a d notes, a s k questions, or browse by depart ment . The d a s h b o a r d a d a p t s b a s e d on user role —st ud ent s see personalized r e c o m m e n d a t i o n s while C R s a c c e s s u p l o a d tools.
+Page 7: WORKFLOW 6 • Login / Register → Upload/Search Resources • Upload/Search Resources → Categorization & Storage • Categorization & Storage (Supabase) → Q&A Forum • Q&A Forum → AI Chatbot • AI Chatbot → Student Output
+Page 8: Notes Listing Discovery Notes Listing & Discovery Smart Filters Filter by branch, semester, subject code, a n d d o c u m e n t type (notes, P Y Q s , assi gn m en t s) Sort Options Sort by m o s t recent, m o s t upvoted, or m o s t v i ew ed to find the best resources Save & Access B o o k m a r k favorites a n d access your sav ed n o t es fro m your profile d ash b o ard Grid view displays note t h u m b n a i l s with subject code, upvote count, a n d u p l o a d date. E a c h c a r d s h o w s preview i m a g e , contributor n a m e , a n d q u i c k action but t ons for v i e w i n g or downloading.
+Page 9: D o c u m e n t Details • Full P D F / i m a g e viewer • S u b j e c t & c o d e m e t a d a t a • Uploader profile link • D o w n l o a d but t on • Share functionality Upvote System Comments Thread Social Sharing Single Note View Experience S i n g l e N o t e V i e w E x p e r i e n c e
+Page 10: QnA Community Hub Q n A C o m m u n i t y H u b Q u e s t i o n F e e d B r o w s e quest ions sorted by recent, trending, or u n a n s w e r e d status. E a c h quest ion c a r d displays the title, snippet, tags, upvot e count, a n d answer count. R e p u t a t i o n S y s t e m E a r n credits t h r o u g h valuable contributions: • +10 c r e d i t s per upvot e on your answer • +5 c r e d i t s per upvot e on your question • +15 c r e d i t s for a c c e p t e d answer Credits u n l o c k b a d g e s a n d boost visibility on leaderboards, creating a g a m i f i e d learning experience. Users c a n filter by subject, search keywords, or view questions from followed users. The interface h i g h l i g h t s u n a n s w e r e d questions to e n c o u r a g e c o m m u n i t y participation.
+Page 11: User Profile Achievements U s e r Profile & A c h i e v e m e n t s 247 Total Credits 89 Followers E a r n e d t h r o u g h contributions C o m m u n i t y connections 134 Following Users y o u track 52 Upvotes Quality contributions Profiles s ho w ca s e user activity i ncl udi n g upl o a de d notes, a ns w e r e d questions, a n d e a r ne d ba dg e s . A c h i e v e m e n t b a d g e s display for milestones like "100 Credits," "10 Helpful Answers," or "Top Contributor." T he follow s y s t e m enables s t ude nt s to track experts in specific subjects a n d build a c a d e m i c networks.
+Page 12: 
+Page 13: 
+Page 14: Future Add Ons Future Add Ons AI Recommendations P erson al i zed n o t e s u g g e s t i o n s b a s e d on branch, semester, a n d b r o w s i n g history Timetable & Notices In t egrated college timetable a n d real -t i m e notice b o ard for a n n o u n c e m e n t s Branch Rankings L ead erb o ard s s h o w c a s i n g t o p st u d en t s by credits within each b r a n c h a n d year Moderator Dashboard A d m i n p an el for co n t en t moderation, user m a n a g e m e n t , a n d analytics Th ese features will t ran sform the platform from a resource hub into a c o m p r e h e n si v e a c a d e m i c e c o s y s t e m for G B P I E T students.
+Page 15: 

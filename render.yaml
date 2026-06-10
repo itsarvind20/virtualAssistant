@@ -62,6 +62,8 @@ services:
         value: en-IN
       - key: VITE_ASSISTANT_RESPONSE_LANG
         value: en
+      - key: VITE_CLOUD_TRANSCRIPTION_ENABLED
+        value: "false"
       - key: VITE_PICOVOICE_ACCESS_KEY
         sync: false
       - key: VITE_PORCUPINE_KEYWORD_PATH

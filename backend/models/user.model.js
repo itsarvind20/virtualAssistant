@@ -19,6 +19,15 @@ const userSchema = new mongoose.Schema({
     assistantImage:{
         type:String
     },
+    assistantVoice:{
+        type:String,
+        enum:["auto","female","male"],
+        default:"auto"
+    },
+    assistantVoiceName:{
+        type:String,
+        default:""
+    },
     googleCalendar:{
         accessToken:{
             type:String

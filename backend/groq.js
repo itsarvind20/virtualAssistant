@@ -5,7 +5,8 @@ const groqResponse = async (
     assistantName,
     userName,
     history = [],
-    extraSystemPrompt = ""
+    extraSystemPrompt = "",
+    language = null
 ) => {
 
     try {
@@ -35,7 +36,13 @@ JSON FORMAT:
 
   "userInput": "<clean user input>",
 
-  "response": "<short voice-friendly response>"
+  "response": "<short voice-friendly response>",
+
+  "language": {
+    "code": "${language?.code || "en-IN"}",
+    "responseLanguage": "${language?.responseLanguage || "en"}",
+    "label": "${language?.label || "English"}"
+  }
 }
 
 Rules:
@@ -50,7 +57,11 @@ Rules:
 - Do not classify unrelated commands as music. Only use a music type when the user clearly asks to play or listen to music, songs, artists, albums, or playlists.
 - For "stop", "cancel", "mute", or "never mind", use "cancel-command".
 - For "pause", use "pause-media". For "resume", "continue", or plain "play", use "resume-media". For "next" or "skip", use "next-media".
-- Keep response short and natural.
+- Keep response short, natural, and pleasant to hear aloud.
+- Prefer one or two short sentences.
+- Respond in ${language?.label || "the same language as the user"}. If the user mixes languages, respond in the same mixed style.
+- Avoid markdown, lists, URLs, symbols, and robotic phrases.
+- For completed actions, sound confident but do not over-explain.
 - Use the conversation history when it helps answer follow-up questions.
 - If asked "who created you",
   mention ${userName}.

@@ -519,6 +519,92 @@ export const deleteCalendarEvent = async (userId, eventId) => {
     return { deleted: true, eventId };
 };
 
+export const deleteCalendarEventsByRange = async (userId, { range = "today", timeMin, timeMax } = {}) => {
+    const calendar = await getCalendar(userId);
+    const parsedRange = timeMin && timeMax
+        ? {
+            start: new Date(timeMin),
+            end: new Date(timeMax),
+            label: range
+        }
+        : parseCalendarRange(range);
+
+    const listRangeEvents = async () => {
+        const response = await calendar.events.list({
+            calendarId: "primary",
+            timeMin: parsedRange.start.toISOString(),
+            timeMax: parsedRange.end.toISOString(),
+            maxResults: 250,
+            singleEvents: true,
+            orderBy: "startTime",
+            showDeleted: false
+        });
+
+        return response.data.items || [];
+    };
+
+    const events = await listRangeEvents();
+    const deleted = [];
+    const failed = [];
+
+    for (const event of events) {
+        if (!event.id) {
+            failed.push({
+                id: "",
+                summary: event.summary || "Untitled event",
+                message: "Event ID is missing"
+            });
+            continue;
+        }
+
+        try {
+            await calendar.events.delete({
+                calendarId: "primary",
+                eventId: event.id,
+                sendUpdates: "all"
+            });
+            deleted.push({
+                id: event.id,
+                summary: event.summary || "Untitled event"
+            });
+        } catch (error) {
+            failed.push({
+                id: event.id,
+                summary: event.summary || "Untitled event",
+                message: error.response?.data?.error?.message || error.message || "Delete failed"
+            });
+        }
+    }
+
+    const remaining = await listRangeEvents();
+    const deletedIds = new Set(deleted.map((event) => event.id));
+    const stillPresent = remaining.filter((event) => deletedIds.has(event.id));
+
+    for (const event of stillPresent) {
+        if (!failed.some((failure) => failure.id === event.id)) {
+            failed.push({
+                id: event.id,
+                summary: event.summary || "Untitled event",
+                message: "Event is still present after delete request"
+            });
+        }
+    }
+
+    return {
+        label: parsedRange.label,
+        requestedCount: events.length,
+        deletedCount: deleted.length - stillPresent.length,
+        failedCount: failed.length,
+        remainingCount: remaining.length,
+        deleted: deleted.filter((event) => !stillPresent.some((remainingEvent) => remainingEvent.id === event.id)),
+        failed,
+        remaining: remaining.map((event) => ({
+            id: event.id,
+            summary: event.summary || "Untitled event"
+        }))
+    };
+};
+
 export const checkFreeBusy = async (userId, payload = {}) => {
     const calendar = await getCalendar(userId);
     const parsed = payload.timeMin && payload.timeMax

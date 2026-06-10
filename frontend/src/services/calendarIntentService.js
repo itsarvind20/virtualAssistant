@@ -6,12 +6,14 @@ export const CALENDAR_INTENTS = {
   CREATE_BIRTHDAY: "CREATE_BIRTHDAY",
   CREATE_REMINDER: "CREATE_REMINDER",
   VIEW_TODAY_EVENTS: "VIEW_TODAY_EVENTS",
+  VIEW_TOMORROW_EVENTS: "VIEW_TOMORROW_EVENTS",
   VIEW_WEEK_EVENTS: "VIEW_WEEK_EVENTS",
   VIEW_MONTH_EVENTS: "VIEW_MONTH_EVENTS",
   VIEW_NEXT_EVENT: "VIEW_NEXT_EVENT",
   SEARCH_EVENT: "SEARCH_EVENT",
   UPDATE_EVENT: "UPDATE_EVENT",
   DELETE_EVENT: "DELETE_EVENT",
+  DELETE_DAY_EVENTS: "DELETE_DAY_EVENTS",
   CHECK_AVAILABILITY: "CHECK_AVAILABILITY",
 };
 
@@ -61,17 +63,31 @@ const applyHindiCalendarAliases = (text = "") =>
 
 const applyCalendarAliases = (text = "") =>
   applyHindiCalendarAliases(text)
+    .replace(/\bdelelte\b/g, " delete ")
+    .replace(/\bdelet\b/g, " delete ")
     .replace(/\bcalender\b/g, " calendar ")
     .replace(/\bcalandar\b/g, " calendar ")
     .replace(/\bcalenda\b/g, " calendar ")
+    .replace(/\btommorow\b/g, " tomorrow ")
+    .replace(/\btommorrow\b/g, " tomorrow ")
     .replace(/\bagenda\b/g, " calendar ")
     .replace(/\bappointment\b/g, " event ")
     .replace(/\bappointments\b/g, " events ")
     .replace(/\bto\s+do\b/g, " todo ");
 
+const normalizeSpokenTimes = (text = "") =>
+  text
+    .replace(/\b([01]?\d|2[0-3])\s+([0-5]\d)\s+(a\s*m|p\s*m|am|pm)\b/g, (_match, hour, minute, meridiem) =>
+      `${hour}:${minute} ${meridiem.replace(/\s+/g, "")}`
+    )
+    .replace(/\b([1-9]|1[0-2])\s+(a\s*m|p\s*m)\b/g, (_match, hour, meridiem) =>
+      `${hour} ${meridiem.replace(/\s+/g, "")}`
+    )
+    .replace(/\b([1-9]|1[0-2])\s+o\s+clock\s+(am|pm)\b/g, "$1 $2");
+
 const cleanText = (text = "") =>
   fillerPatterns
-    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpeechText(applyCalendarAliases(text)))
+    .reduce((value, pattern) => value.replace(pattern, " "), normalizeSpokenTimes(normalizeSpeechText(applyCalendarAliases(text))))
     .replace(/\s+/g, " ")
     .trim();
 
@@ -100,6 +116,36 @@ const parseDateResult = (text = "", useLast = false) => {
     matchedText: result.text,
     allDay: !result.start.isCertain("hour"),
   };
+};
+
+const parseQueryDateWindow = (text = "") => {
+  const result = parseDateResult(text);
+
+  if (!result?.start) return {};
+
+  const start = new Date(result.start);
+  const end = new Date(start);
+
+  if (result.allDay) {
+    start.setHours(0, 0, 0, 0);
+    end.setDate(start.getDate() + 1);
+    end.setHours(0, 0, 0, 0);
+  } else {
+    end.setTime(new Date(result.end).getTime());
+  }
+
+  return {
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+  };
+};
+
+const rangeFromCommand = (text = "") => {
+  if (/\btoday\b/.test(text)) return "today";
+  if (/\btomorrow\b/.test(text)) return "tomorrow";
+  if (/\b(this week|week)\b/.test(text)) return "week";
+  if (/\b(this month|month)\b/.test(text)) return "month";
+  return "";
 };
 
 const detectRecurrence = (text = "") => {
@@ -137,7 +183,7 @@ const eventTitleFromCommand = (text = "") => {
 
   return titleCase(
     withoutDate
-      .replace(/\b(add|create|schedule|book|set up|make|put|block|event|calendar|meeting|meet|call|discussion|time|slot|google|link|on|at|from|to|with|for)\b/g, " ")
+      .replace(/\b(add|create|schedule|book|set up|make|put|block|event|calendar|time|slot|google|link|on|at|from|to|with|for)\b/g, " ")
       .replace(/\bevery\s+(day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|month|year)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim()
@@ -176,7 +222,7 @@ const searchQueryFromCommand = (text = "") =>
 export const isCalendarCommand = (text = "") => {
   const command = cleanText(text);
 
-  return /\b(calendar|meeting|event|schedule|birthday|remind|reminder|task|todo|availability|available|free|busy|agenda|appointment)\b/.test(command) ||
+  return /\b(calendar|meeting|meetings|event|events|schedule|birthday|remind|reminder|reminders|task|tasks|todo|availability|available|free|busy|agenda|appointment|appointments)\b/.test(command) ||
     /\b(am i free|do i have time|what do i have|what is on|show my meetings|next meeting|next event|block time|put .* on calendar)\b/.test(command);
 };
 
@@ -210,6 +256,28 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
+  if (
+    /\b(delete|remove|clear|cancel)\b/.test(command) &&
+    (
+      /\b(all|every|everything|whole day|full day)\b/.test(command) ||
+      /\b(all my|my all)\b/.test(command)
+    ) &&
+    /\b(event|events|meeting|meetings|reminder|reminders|calendar|schedule)\b/.test(command)
+  ) {
+    const range = rangeFromCommand(command);
+
+    return {
+      type: CALENDAR_INTENTS.DELETE_DAY_EVENTS,
+      payload: {
+        range: range || "today",
+        needsDate: !range && !parseDateResult(command),
+        naturalText: text,
+        ...parseQueryDateWindow(command),
+      },
+      needsConfirmation: true,
+    };
+  }
+
   if (/\b(cancel|delete|remove)\b/.test(command) && /\b(event|meeting|reminder|calendar)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.DELETE_EVENT,
@@ -217,8 +285,9 @@ export const parseCalendarIntent = (text = "") => {
         query: searchQueryFromCommand(command),
         naturalText: text,
         targetNext: /\bnext\b/.test(command),
+        ...parseQueryDateWindow(command),
       },
-      needsConfirmation: false,
+      needsConfirmation: true,
     };
   }
 
@@ -230,6 +299,7 @@ export const parseCalendarIntent = (text = "") => {
         naturalText: text,
         createMeet: /\bgoogle meet|meet link\b/.test(command),
         targetNext: /\bnext\b/.test(command),
+        ...parseQueryDateWindow(command),
         ...parseDateResult(command, true),
       },
       needsConfirmation: true,
@@ -300,6 +370,30 @@ export const parseCalendarIntent = (text = "") => {
     };
   }
 
+  if (
+    /\b(show|read|tell|list)\b/.test(command) &&
+    /\b(calendar|schedule|meetings|events)\b/.test(command) &&
+    !/\b(tomorrow|week|month|next)\b/.test(command)
+  ) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_TODAY_EVENTS,
+      payload: {},
+      needsConfirmation: false,
+    };
+  }
+
+  if (
+    /\b(tomorrow|schedule tomorrow|calendar tomorrow|on calendar tomorrow|what is on tomorrow|what do i have tomorrow|meetings tomorrow|events tomorrow|show tomorrow)\b/.test(command) &&
+    /\b(calendar|schedule|meeting|event|what is on|what do i have|show|meetings|events)\b/.test(command)
+  ) {
+    return {
+      type: CALENDAR_INTENTS.VIEW_TOMORROW_EVENTS,
+      payload: { range: "tomorrow" },
+      needsConfirmation: false,
+    };
+  }
+
+
   if (/\b(this week|week|meetings this week|events this week|weekly agenda)\b/.test(command) && /\b(calendar|schedule|meeting|event|show|agenda|meetings|events)\b/.test(command)) {
     return {
       type: CALENDAR_INTENTS.VIEW_WEEK_EVENTS,
@@ -329,6 +423,7 @@ export const parseCalendarIntent = (text = "") => {
       type: CALENDAR_INTENTS.SEARCH_EVENT,
       payload: {
         query: searchQueryFromCommand(command),
+        ...parseQueryDateWindow(command),
       },
       needsConfirmation: false,
     };
@@ -360,6 +455,10 @@ export const describeCalendarIntent = (intent) => {
 
   if (intent.type === CALENDAR_INTENTS.DELETE_EVENT) {
     return "I found this event. Should I delete it?";
+  }
+
+  if (intent.type === CALENDAR_INTENTS.DELETE_DAY_EVENTS) {
+    return `Should I delete all events on your calendar for ${intent.payload?.range || "that day"}?`;
   }
 
   return "Should I continue?";

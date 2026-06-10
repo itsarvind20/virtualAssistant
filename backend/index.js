@@ -9,9 +9,16 @@ import connectDb from "./config/db.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import calendarRouter from "./routes/calendarRoutes.js";
+import systemRouter from "./routes/systemRoutes.js";
 import groqResponse from "./groq.js"
 const app = express();
 const port = process.env.PORT || 8000;
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "https://my-assistant-suzo.onrender.com"
+].filter(Boolean);
 
 
 // =========================
@@ -19,7 +26,13 @@ const port = process.env.PORT || 8000;
 // =========================
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://my-assistant-suzo.onrender.com",
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true
 }));
 
@@ -34,6 +47,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/calendar", calendarRouter);
+app.use("/api/system", systemRouter);
 
 app.get("/", (req, res) => {
     res.status(200).json({

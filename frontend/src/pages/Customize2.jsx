@@ -1,16 +1,48 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Venus, Mars, Wand2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { userDataContext } from "../context/userDataContext";
+
+const voiceOptions = [
+  { id: "female", label: "Female", Icon: Venus },
+  { id: "male", label: "Male", Icon: Mars },
+  { id: "auto", label: "Auto", Icon: Wand2 },
+];
 
 function Customize2() {
   const { userData, backendImage, selectedImage, serverUrl, setUserData } =
     useContext(userDataContext);
   const [assistantName, setAssistantName] = useState(userData?.assistantName || "");
+  const [assistantVoice, setAssistantVoice] = useState(userData?.assistantVoice || "auto");
+  const [assistantVoiceName, setAssistantVoiceName] = useState(userData?.assistantVoiceName || "");
+  const [browserVoices, setBrowserVoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis?.getVoices?.() || [];
+
+      setBrowserVoices(
+        voices
+          .map((voice) => ({
+            id: `${voice.name}-${voice.lang}`,
+            name: voice.name,
+            lang: voice.lang,
+          }))
+          .sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name))
+      );
+    };
+
+    loadVoices();
+    window.speechSynthesis?.addEventListener?.("voiceschanged", loadVoices);
+
+    return () => {
+      window.speechSynthesis?.removeEventListener?.("voiceschanged", loadVoices);
+    };
+  }, []);
 
   const handleUpdateAssistant = async () => {
     if (!assistantName.trim()) return;
@@ -21,6 +53,8 @@ function Customize2() {
     try {
       const formData = new FormData();
       formData.append("assistantName", assistantName.trim());
+      formData.append("assistantVoice", assistantVoice);
+      formData.append("assistantVoiceName", assistantVoiceName);
 
       if (backendImage) {
         formData.append("assistantImage", backendImage);
@@ -75,6 +109,39 @@ function Customize2() {
           type="text"
           value={assistantName}
         />
+
+        <div className="grid w-full grid-cols-3 gap-2">
+          {voiceOptions.map(({ id, label, Icon }) => (
+            <button
+              className={`flex h-12 items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition ${
+                assistantVoice === id
+                  ? "border-cyan-200 bg-cyan-200 text-black"
+                  : "border-white/15 bg-black/30 text-white hover:border-cyan-200/60"
+              }`}
+              key={id}
+              onClick={() => setAssistantVoice(id)}
+              type="button"
+            >
+              <Icon size={17} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <select
+          className="h-12 w-full rounded-lg border border-white/15 bg-black/30 px-4 text-sm text-white outline-none transition focus:border-cyan-200/60"
+          onChange={(event) => setAssistantVoiceName(event.target.value)}
+          value={assistantVoiceName}
+        >
+          <option className="bg-slate-950" value="">
+            Use best matching browser voice
+          </option>
+          {browserVoices.map((voice) => (
+            <option className="bg-slate-950" key={voice.id} value={voice.name}>
+              {voice.name} ({voice.lang})
+            </option>
+          ))}
+        </select>
 
         {errorMessage ? (
           <p className="rounded-lg border border-red-300/20 bg-red-500/10 px-4 py-2 text-sm text-red-100">

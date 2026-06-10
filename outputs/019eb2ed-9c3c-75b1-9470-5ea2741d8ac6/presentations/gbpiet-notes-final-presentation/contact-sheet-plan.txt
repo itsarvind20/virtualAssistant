@@ -1,0 +1,14 @@
+1. Cover with title block and project identity rail.
+2. Problem map with disconnected channels converging into user pain.
+3. Objective ladder with scope bands.
+4. Three-lane user journey.
+5. Capability pillars around the platform.
+6. Horizontal system architecture.
+7. Entity relationship map.
+8. Module implementation matrix.
+9. Workflow comparison for notes, Q&A, community.
+10. Dual AI and moderation flow.
+11. Security and quality control stack.
+12. Testing validation table.
+13. Outcome and future roadmap bridge.
+14. Closing thesis with viva-ready summary.

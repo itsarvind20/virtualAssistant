@@ -1,0 +1,1034 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/9odc0d",
+    "id": "9odc0d",
+    "slide": 14,
+    "layoutId": "45a041b4-254a-4204-8f9b-4599be55d1be",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "a6667b94-e15b-406a-b4d4-d96ef59b1ebd",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Aptos",
+      "Aptos Display"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "45a041b4-254a-4204-8f9b-4599be55d1be",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "a6667b94-e15b-406a-b4d4-d96ef59b1ebd",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "a6667b94-e15b-406a-b4d4-d96ef59b1ebd",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hk3q5o7q",
+      "id": "1",
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "geometry": "rect",
+      "fillColor": "#14213D",
+      "lineColor": "#14213D",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6xkf6dcb",
+      "id": "2",
+      "bbox": [
+        72,
+        70,
+        360,
+        52
+      ],
+      "geometry": "rect",
+      "text": "Conclusion",
+      "textPreview": "Conclusion",
+      "resolvedFontSize": 42,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 42,
+        "typeface": "Aptos Display",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Conclusion"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Conclusion",
+          "resolvedTextStyle": {
+            "fontSize": 42,
+            "typeface": "Aptos Display",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Conclusion",
+              "fontSize": 42,
+              "typeface": "Aptos Display",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zed8v6ps",
+      "id": "3",
+      "bbox": [
+        74,
+        164,
+        850,
+        132
+      ],
+      "geometry": "rect",
+      "text": "GBPIET Notes demonstrates how a full-stack web application can solve a real campus problem by combining structured resource sharing, peer collaboration, contribution recognition, AI assistance, and safety controls.",
+      "textPreview": "GBPIET Notes demonstrates how a full-stack web application can solve a real campus problem by combining structured resource sharing, peer...",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Aptos",
+        "color": "#F8F3EA",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "GBPIET Notes demonstrates how a full-stack web application can solve a real"
+          },
+          {
+            "index": 2,
+            "text": "campus problem by combining structured resource sharing, peer"
+          },
+          {
+            "index": 3,
+            "text": "collaboration, contribution recognition, AI assistance, and safety controls."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "GBPIET Notes demonstrates how a full-stack web application can solve a real campus problem by combining structured resource sharing, peer collaboration, contribution recognition, AI assistance, and safety controls.",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Aptos",
+            "color": "#F8F3EA",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "GBPIET Notes demonstrates how a full-stack web application can solve a real campus problem by combining structured resource sharing, peer collaboration, contribution recognition, AI assistance, and safety controls.",
+              "fontSize": 27,
+              "typeface": "Aptos",
+              "color": "#F8F3EA"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/obm58z25",
+      "id": "4",
+      "bbox": [
+        78,
+        360,
+        340,
+        34
+      ],
+      "geometry": "roundRect",
+      "text": "Centralized academic resources",
+      "textPreview": "Centralized academic resources",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 14,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Centralized academic resources"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Centralized academic resources",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Centralized academic resources",
+              "fontSize": 14,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#0F766E",
+      "lineColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hwfyxobm",
+      "id": "5",
+      "bbox": [
+        468,
+        360,
+        340,
+        34
+      ],
+      "geometry": "roundRect",
+      "text": "Searchable Q&A knowledge retention",
+      "textPreview": "Searchable Q&A knowledge retention",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 14,
+        "typeface": "Aptos",
+        "color": "#14213D",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Searchable Q&A knowledge retention"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Searchable Q&A knowledge retention",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Aptos",
+            "color": "#14213D",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Searchable Q&A knowledge retention",
+              "fontSize": 14,
+              "typeface": "Aptos",
+              "color": "#14213D",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#F59E0B",
+      "lineColor": "#F59E0B",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/65wjudg7",
+      "id": "6",
+      "bbox": [
+        78,
+        418,
+        340,
+        34
+      ],
+      "geometry": "roundRect",
+      "text": "Community profiles and leaderboards",
+      "textPreview": "Community profiles and leaderboards",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 14,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Community profiles and leaderboards"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Community profiles and leaderboards",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Community profiles and leaderboards",
+              "fontSize": 14,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#0F766E",
+      "lineColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zqtcj6to",
+      "id": "7",
+      "bbox": [
+        468,
+        418,
+        340,
+        34
+      ],
+      "geometry": "roundRect",
+      "text": "Secure MERN-style architecture",
+      "textPreview": "Secure MERN-style architecture",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 14,
+        "typeface": "Aptos",
+        "color": "#14213D",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Secure MERN-style architecture"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Secure MERN-style architecture",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Aptos",
+            "color": "#14213D",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Secure MERN-style architecture",
+              "fontSize": 14,
+              "typeface": "Aptos",
+              "color": "#14213D",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#F59E0B",
+      "lineColor": "#F59E0B",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/sfil0rqd",
+      "id": "8",
+      "bbox": [
+        78,
+        476,
+        330,
+        34
+      ],
+      "geometry": "roundRect",
+      "text": "AI-enabled study support",
+      "textPreview": "AI-enabled study support",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 14,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "AI-enabled study support"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "AI-enabled study support",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "AI-enabled study support",
+              "fontSize": 14,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#0F766E",
+      "lineColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/h0fepkzu",
+      "id": "9",
+      "bbox": [
+        910,
+        86,
+        250,
+        470
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#F8F3EA",
+      "lineColor": "#F8F3EA",
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5wjudg7a",
+      "id": "10",
+      "bbox": [
+        936,
+        126,
+        200,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Viva-ready summary",
+      "textPreview": "Viva-ready summary",
+      "resolvedFontSize": 20,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 20,
+        "typeface": "Aptos",
+        "color": "#14213D",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Viva-ready summary"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Viva-ready summary",
+          "resolvedTextStyle": {
+            "fontSize": 20,
+            "typeface": "Aptos",
+            "color": "#14213D",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Viva-ready summary",
+              "fontSize": 20,
+              "typeface": "Aptos",
+              "color": "#14213D",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gbq1oryt",
+      "id": "11",
+      "bbox": [
+        942,
+        190,
+        190,
+        280
+      ],
+      "geometry": "rect",
+      "text": "Problem\nScattered resources\n\nSolution\nIntegrated academic platform\n\nTechnology\nReact + Express + MongoDB + Supabase + Gemini\n\nValidation\nMajor modules passed functional checks",
+      "textPreview": "Problem | Scattered resources |  | Solution | Integrated academic platform |  | Technology | React + Express + MongoDB + Supabase + Gemin...",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Aptos",
+        "color": "#374151",
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 13,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Problem"
+          },
+          {
+            "index": 2,
+            "text": "Scattered resources"
+          },
+          {
+            "index": 3,
+            "text": ""
+          },
+          {
+            "index": 4,
+            "text": "Solution"
+          },
+          {
+            "index": 5,
+            "text": "Integrated academic platform"
+          },
+          {
+            "index": 6,
+            "text": ""
+          },
+          {
+            "index": 7,
+            "text": "Technology"
+          },
+          {
+            "index": 8,
+            "text": "React + Express + MongoDB +"
+          },
+          {
+            "index": 9,
+            "text": "Supabase + Gemini"
+          },
+          {
+            "index": 10,
+            "text": ""
+          },
+          {
+            "index": 11,
+            "text": "Validation"
+          },
+          {
+            "index": 12,
+            "text": "Major modules passed"
+          },
+          {
+            "index": 13,
+            "text": "functional checks"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Problem",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Problem",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "Scattered resources",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Scattered resources",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 4,
+          "text": "Solution",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Solution",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 5,
+          "text": "Integrated academic platform",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Integrated academic platform",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 7,
+          "text": "Technology",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Technology",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 8,
+          "text": "React + Express + MongoDB + Supabase + Gemini",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "React + Express + MongoDB + Supabase + Gemini",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 10,
+          "text": "Validation",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Validation",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 11,
+          "text": "Major modules passed functional checks",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Aptos",
+            "color": "#374151",
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Major modules passed functional checks",
+              "fontSize": 15,
+              "typeface": "Aptos",
+              "color": "#374151"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/nuxc3ylc",
+      "id": "12",
+      "bbox": [
+        70,
+        610,
+        400,
+        48
+      ],
+      "geometry": "rect",
+      "text": "Thank You",
+      "textPreview": "Thank You",
+      "resolvedFontSize": 34,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 34,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Thank You"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Thank You",
+          "resolvedTextStyle": {
+            "fontSize": 34,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Thank You",
+              "fontSize": 34,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/y90je9cv",
+      "id": "13",
+      "bbox": [
+        64,
+        686,
+        420,
+        18
+      ],
+      "geometry": "rect",
+      "text": "GBPIET Notes final project | 14",
+      "textPreview": "GBPIET Notes final project | 14",
+      "resolvedFontSize": 10,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 10,
+        "typeface": "Aptos",
+        "color": "#BFD7D4",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "GBPIET Notes final project | 14"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "GBPIET Notes final project | 14",
+          "resolvedTextStyle": {
+            "fontSize": 10,
+            "typeface": "Aptos",
+            "color": "#BFD7D4",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "GBPIET Notes final project | 14",
+              "fontSize": 10,
+              "typeface": "Aptos",
+              "color": "#BFD7D4"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

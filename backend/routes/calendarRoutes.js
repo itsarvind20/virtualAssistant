@@ -5,6 +5,7 @@ import {
     createEvent,
     createReminder,
     deleteEvent,
+    deleteEventsByRange,
     freeBusy,
     getCalendarStatus,
     getEventsByRange,
@@ -35,6 +36,7 @@ calendarRouter.get("/events/next", getNextCalendarEvent);
 calendarRouter.get("/search", searchCalendarEvents);
 calendarRouter.patch("/update-event/:eventId", updateEvent);
 calendarRouter.delete("/delete-event/:eventId", deleteEvent);
+calendarRouter.post("/delete-events-by-range", deleteEventsByRange);
 calendarRouter.post("/freebusy", freeBusy);
 
 export default calendarRouter;

@@ -25,10 +25,12 @@ import {
   processCommand,
 } from "../services/commandProcessor";
 import { abortTask, createTaskController, isInterruptCommand } from "../services/interruptService";
+import { executePowerAction } from "../services/systemService";
 import { createTtsService } from "../services/ttsService";
 import { normalizeSpeechText, requestMicrophonePermission } from "../utils/audioHelpers";
 import { createSilenceTimer } from "../utils/silenceDetection";
 import { getAssistantResponseLanguageLabel, shouldUsePorcupineWakeWord, speechConfig } from "../services/speechConfig";
+import { detectCommandLanguage, getLanguageInstruction } from "../services/languageService";
 
 const ACTIVE_TIMEOUT_MS = 6500;
 const FOLLOW_UP_TIMEOUT_MS = 45000;
@@ -50,6 +52,7 @@ function Home() {
   const [micPaused, setMicPaused] = useState(false);
   const [manualSleep, setManualSleep] = useState(false);
   const [pendingCalendarAction, setPendingCalendarAction] = useState(null);
+  const [pendingSystemAction, setPendingSystemAction] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [, setSpeechDebug] = useState({
     final: "",
@@ -83,7 +86,11 @@ function Home() {
   }, [assistant.state]);
 
   useEffect(() => {
-    ttsRef.current = createTtsService({ lang: speechConfig.ttsLanguage });
+    ttsRef.current = createTtsService({
+      lang: speechConfig.ttsLanguage,
+      voiceStyle: userData?.assistantVoice || "auto",
+      voiceName: userData?.assistantVoiceName || "",
+    });
 
     return () => {
       ttsRef.current?.cancel();
@@ -95,24 +102,27 @@ function Home() {
   }, []);
 
   const buildSystemPrompt = useCallback(
-    () =>
+    (language = null) =>
       `
 You are ${assistantName}, a concise real-time voice assistant for ${userName}.
 Classify commands accurately, keep replies short, and never claim an action happened if it failed.
 For interruption commands, respond with a short acknowledgement.
-Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks for another language.
+Speak naturally in one or two short sentences. Use warm, simple wording that sounds good aloud.
+Avoid markdown, lists, URLs, and long explanations in spoken replies.
+${language ? getLanguageInstruction(language) : `Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks for another language.`}
 `.trim(),
     [assistantName, userName]
   );
 
   const speak = useCallback(
-    async (text, nextState = ASSISTANT_STATES.SLEEPING) => {
+    async (text, nextState = ASSISTANT_STATES.SLEEPING, language = null) => {
       if (!text) return;
 
       assistant.setState(ASSISTANT_STATES.SPEAKING);
       setMicPaused(true);
 
       await ttsRef.current?.speak(text, {
+        lang: language?.code || speechConfig.ttsLanguage,
         onEnd: () => {
           setMicPaused(false);
           assistant.setState(nextState);
@@ -299,9 +309,52 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     startFollowUpSession();
   }, [addMessage, speak, startFollowUpSession]);
 
+  const confirmSystemAction = useCallback(async () => {
+    if (!pendingSystemAction?.action) return;
+
+    const action = pendingSystemAction;
+    setPendingSystemAction(null);
+    assistant.setState(ASSISTANT_STATES.THINKING);
+
+    try {
+      const controller = abortTask(taskControllerRef);
+      await executePowerAction(serverUrl, action.action, controller.signal);
+
+      if (controller.signal.aborted) return;
+
+      const response =
+        action.action === "shutdown"
+          ? "Okay. Shutting down your laptop."
+          : action.action === "restart"
+            ? "Okay. Restarting your laptop."
+            : "Okay. Putting your laptop to sleep.";
+      addMessage("assistant", response);
+      await speak(response, ASSISTANT_STATES.IDLE);
+    } catch (error) {
+      if (error.name === "CanceledError" || error.name === "AbortError") return;
+
+      const response = error.response?.data?.message || "I could not run that laptop power command.";
+      assistant.setError(response);
+      addMessage("assistant", response);
+      await speak(response, ASSISTANT_STATES.IDLE);
+    }
+
+    startFollowUpSession();
+  }, [addMessage, assistant, pendingSystemAction, serverUrl, speak, startFollowUpSession]);
+
+  const cancelSystemAction = useCallback(async () => {
+    setPendingSystemAction(null);
+
+    const response = "Okay, I will not change your laptop power state.";
+    addMessage("assistant", response);
+    await speak(response, ASSISTANT_STATES.IDLE);
+    startFollowUpSession();
+  }, [addMessage, speak, startFollowUpSession]);
+
   const runCommand = useCallback(
     async (rawCommand) => {
       const command = normalizeSpeechText(rawCommand);
+      const commandLanguage = detectCommandLanguage(command, speechConfig.ttsLanguage);
 
       if (!command) {
         activeCommandRef.current = "";
@@ -334,6 +387,22 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
         }
       }
 
+      if (pendingSystemAction) {
+        const confirmation = isConfirmationResponse(command);
+
+        if (confirmation === "confirm") {
+          addMessage("user", command);
+          await confirmSystemAction();
+          return;
+        }
+
+        if (confirmation === "cancel") {
+          addMessage("user", command);
+          await cancelSystemAction();
+          return;
+        }
+      }
+
       if (isInterruptCommand(command)) {
         await handleInterrupt();
         return;
@@ -350,7 +419,16 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       if (localIntent?.type === "sleep-assistant") {
         addMessage("user", command);
         addMessage("assistant", localIntent.response);
-        await speak(localIntent.response, ASSISTANT_STATES.SLEEPING);
+        await speak(localIntent.response, ASSISTANT_STATES.SLEEPING, commandLanguage);
+        return;
+      }
+
+      if (localIntent?.type === "system-power") {
+        addMessage("user", command);
+        setPendingSystemAction(localIntent);
+        addMessage("assistant", localIntent.response);
+        await speak(localIntent.response, ASSISTANT_STATES.IDLE, commandLanguage);
+        startFollowUpSession();
         return;
       }
 
@@ -358,7 +436,7 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
         addMessage("user", command);
         executeLocalBrowserAction(localIntent);
         addMessage("assistant", localIntent.response);
-        await speak(localIntent.response, ASSISTANT_STATES.IDLE);
+        await speak(localIntent.response, ASSISTANT_STATES.IDLE, commandLanguage);
         startFollowUpSession();
         return;
       }
@@ -386,7 +464,8 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
           command,
           serverUrl,
           history: previousHistory,
-          systemPrompt: buildSystemPrompt(),
+          systemPrompt: buildSystemPrompt(commandLanguage),
+          language: commandLanguage,
           signal: controller.signal,
         });
 
@@ -397,14 +476,14 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
         const response = data?.response || "I did not get a clear answer.";
         historyRef.current = [...nextHistory, { role: "assistant", content: response }].slice(-20);
         addMessage("assistant", response);
-        await speak(response, ASSISTANT_STATES.IDLE);
+        await speak(response, ASSISTANT_STATES.IDLE, data?.language || commandLanguage);
         startFollowUpSession();
       } catch (error) {
         if (error.name === "CanceledError" || error.name === "AbortError") return;
 
         const response = "I had trouble completing that.";
         addMessage("assistant", response);
-        await speak(response, ASSISTANT_STATES.IDLE);
+        await speak(response, ASSISTANT_STATES.IDLE, commandLanguage);
         startFollowUpSession();
       }
     },
@@ -413,11 +492,14 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       assistant,
       buildSystemPrompt,
       cancelCalendarAction,
+      cancelSystemAction,
       confirmCalendarAction,
+      confirmSystemAction,
       endConversation,
       handleInterrupt,
       manualSleep,
       pendingCalendarAction,
+      pendingSystemAction,
       runPreparedCalendarIntent,
       serverUrl,
       speak,
@@ -443,12 +525,15 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
     try {
       const controller = abortTask(taskControllerRef);
       const audioBlob = await recorderRef.current.stop();
-      const cloudTranscript = await transcribeAudioCommand({
-        serverUrl,
-        audioBlob,
-        language: speechConfig.recognitionLanguage,
-        signal: controller.signal,
-      }).catch(() => "");
+      const cloudTranscript =
+        speechConfig.cloudTranscriptionEnabled && audioBlob
+          ? await transcribeAudioCommand({
+              serverUrl,
+              audioBlob,
+              language: speechConfig.transcriptionLanguage,
+              signal: controller.signal,
+            }).catch(() => "")
+          : "";
       const command = cloudTranscript || browserTranscript;
 
       setSpeechDebug((debug) => ({
@@ -596,7 +681,7 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
       setInterimText(text);
       silenceTimerRef.current?.reset();
     }
-  }, []);
+  }, [userData?.assistantVoice, userData?.assistantVoiceName]);
 
   const speech = useSpeechRecognition({
     enabled: micReady && !manualSleep,
@@ -665,16 +750,21 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
   const sleepAssistant = useCallback(() => {
     abortTask(taskControllerRef);
     ttsRef.current?.cancel();
+    speechRef.current?.abort();
     silenceTimerRef.current?.clear();
     clearSessionTimer();
     recorderRef.current.cancel();
     activeCommandRef.current = "";
     setInterimText("");
     setMicPaused(false);
-    setManualSleep(true);
+    setManualSleep(false);
     assistant.setState(ASSISTANT_STATES.SLEEPING);
-    addMessage("assistant", "Sleeping. Press the mic button to wake me.");
-  }, [addMessage, assistant, clearSessionTimer]);
+    addMessage("assistant", `Sleeping. Say "Hey ${assistantName}" to wake me.`);
+
+    window.setTimeout(() => {
+      speechRef.current?.start();
+    }, 500);
+  }, [addMessage, assistant, assistantName, clearSessionTimer]);
 
   const wakeAssistantManually = useCallback(() => {
     setManualSleep(false);
@@ -775,7 +865,7 @@ Respond in ${getAssistantResponseLanguageLabel()} unless the user clearly asks f
           <div className="shrink-0 text-center">
               <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-100/60 sm:text-xs">
               {manualSleep
-                ? "manual sleep mode"
+                ? "microphone paused"
                 : micReady
                   ? "continuous wake monitoring"
                   : "microphone permission needed"}

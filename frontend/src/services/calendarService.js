@@ -119,6 +119,15 @@ export const deleteCalendarEvent = async (serverUrl, eventId, signal) => {
   return response.data;
 };
 
+export const deleteCalendarEventsByRange = async (serverUrl, payload, signal) => {
+  const response = await axios.post(`${calendarApi(serverUrl)}/delete-events-by-range`, payload, {
+    withCredentials: true,
+    signal,
+  });
+
+  return response.data;
+};
+
 export const checkCalendarAvailability = async (serverUrl, payload, signal) => {
   const response = await axios.post(`${calendarApi(serverUrl)}/freebusy`, payload, {
     withCredentials: true,

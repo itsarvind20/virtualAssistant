@@ -4,6 +4,7 @@ import {
     createCalendarEvent,
     createReminderEvent,
     deleteCalendarEvent,
+    deleteCalendarEventsByRange,
     getCalendarAuthUrl,
     getConnectionStatus,
     getNextEvent,
@@ -205,6 +206,19 @@ export const updateEvent = async (req, res) => {
 export const deleteEvent = async (req, res) => {
     try {
         const data = await deleteCalendarEvent(req.userId, req.params.eventId);
+
+        return res.json({
+            success: true,
+            ...data
+        });
+    } catch (error) {
+        return sendError(res, error);
+    }
+};
+
+export const deleteEventsByRange = async (req, res) => {
+    try {
+        const data = await deleteCalendarEventsByRange(req.userId, req.body);
 
         return res.json({
             success: true,

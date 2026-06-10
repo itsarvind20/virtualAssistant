@@ -5,6 +5,7 @@ import moment from "moment";
 import executeCommand from "../commandExecutor.js";
 import playMusic, { nextMusic, pauseMusic, resumeMusic, stopMusic } from "../utils/playMusic.js";
 import playFirstYoutubeVideo from "../utils/playYoutubeVideo.js";
+import { detectCommandLanguage, getLanguageInstruction, getLocalizedText, withLanguage } from "../utils/language.js";
 
 const MUSIC_TYPES = ["play-music", "youtube-music-play"];
 
@@ -42,7 +43,7 @@ const escapeRegExp = (text = "") =>
 const normalizeCommand = (text = "") =>
     String(text)
         .toLowerCase()
-        .replace(/[^\w\s]/g, " ")
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
         .replace(/\s+/g, " ")
         .trim();
 
@@ -74,8 +75,9 @@ const hasMusicIntent = (text = "") => {
 
     if (hasYoutubeVideoIntent(normalized)) return false;
 
-    return /\b(youtube music|music|song|songs|track|album|artist|playlist)\b/.test(normalized) ||
-        /\b(play|plau|listen to|put on)\b/.test(normalized);
+    return /\b(youtube music|music|song|songs|track|album|artist|playlist|gaana|gana)\b/.test(normalized) ||
+        /\b(play|plau|listen to|put on|chalao|lagao)\b/.test(normalized) ||
+        /गाना|संगीत|चलाओ|लगाओ/.test(normalized);
 };
 
 const hasYoutubeVideoIntent = (text = "") => {
@@ -113,8 +115,9 @@ const inferMusicQuery = (text = "", assistantName = "") => {
 
     return query
         .replace(/\b(please|can you|could you|would you)\b/gi, "")
-        .replace(/\b(play|plau|listen to|put on)\b/gi, "")
-        .replace(/\b(the )?(song|music|track)\b/gi, "")
+        .replace(/\b(play|plau|listen to|put on|chalao|lagao)\b/gi, "")
+        .replace(/\b(the )?(song|music|track|gaana|gana)\b/gi, "")
+        .replace(/गाना|संगीत|चलाओ|लगाओ/gi, "")
         .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
         .replace(/\s+/g, " ")
         .trim();
@@ -126,30 +129,30 @@ const inferObviousCommandType = (text = "") => {
 
     if (!normalized) return null;
 
-    if (/\b(stop|cancel|mute|never mind|nevermind)\b/.test(normalized)) return "cancel-command";
+    if (/\b(stop|cancel|mute|never mind|nevermind|ruk|roko|band|bas)\b/.test(normalized) || /रुको|रोको|बंद/.test(normalized)) return "cancel-command";
     if (/\b(end conversation|end chat|finish conversation|close conversation|that is all|that s all|goodbye|bye|we are done|conversation over)\b/.test(normalized)) return "end-conversation";
-    if (/\b(next|skip|skip song|next song|next track)\b/.test(normalized)) return "next-media";
-    if (/\bpause\b/.test(normalized)) return "pause-media";
-    if (/^(resume|continue)$/.test(normalized) || /\b(resume|continue)\b/.test(normalized)) return "resume-media";
+    if (/\b(next|skip|skip song|next song|next track|agla|agli)\b/.test(normalized) || /अगला|अगली/.test(normalized)) return "next-media";
+    if (/\b(pause|rok do|roko)\b/.test(normalized) || /पॉज|रोक/.test(normalized)) return "pause-media";
+    if (/^(resume|continue)$/.test(normalized) || /\b(resume|continue|chalu|chalao|jaari)\b/.test(normalized) || /चालू|चलाओ|जारी/.test(normalized)) return "resume-media";
 
-    if (/\b(time|current time)\b/.test(normalized)) return "get-time";
-    if (/\b(date|today date)\b/.test(normalized)) return "get-date";
-    if (/\b(day|today day)\b/.test(normalized)) return "get-day";
-    if (/\b(month|current month)\b/.test(normalized)) return "get-month";
+    if (/\b(time|current time|samay|waqt)\b/.test(normalized) || /समय|वक्त|टाइम/.test(normalized)) return "get-time";
+    if (/\b(date|today date|tarikh|tareekh)\b/.test(normalized) || /तारीख|डेट/.test(normalized)) return "get-date";
+    if (/\b(day|today day|din)\b/.test(normalized) || /दिन/.test(normalized)) return "get-day";
+    if (/\b(month|current month|mahina)\b/.test(normalized) || /महीना/.test(normalized)) return "get-month";
 
-    if (/\b(open|start|launch)\s+(chrome|google chrome)\b/.test(normalized)) return "open-chrome";
-    if (/\b(open|start|launch)\s+notepad\b/.test(normalized)) return "open-notepad";
-    if (/\b(open|start|launch)\s+(vs code|vscode|visual studio code)\b/.test(normalized)) return "open-vscode";
-    if (/\b(open|start|launch)\s+(calculator|calc)\b/.test(normalized)) return "calculator-open";
+    if (/\b(open|start|launch|khol|kholo)\s+(chrome|google chrome)\b/.test(normalized) || /क्रोम.*खोल|खोल.*क्रोम/.test(normalized)) return "open-chrome";
+    if (/\b(open|start|launch|khol|kholo)\s+notepad\b/.test(normalized) || /नोटपैड.*खोल|खोल.*नोटपैड/.test(normalized)) return "open-notepad";
+    if (/\b(open|start|launch|khol|kholo)\s+(vs code|vscode|visual studio code)\b/.test(normalized) || /वी एस कोड.*खोल|खोल.*वी एस कोड/.test(normalized)) return "open-vscode";
+    if (/\b(open|start|launch|khol|kholo)\s+(calculator|calc)\b/.test(normalized) || /कैलकुलेटर.*खोल|खोल.*कैलकुलेटर/.test(normalized)) return "calculator-open";
 
     if (isOpenYoutubeOnly(normalized)) return "open-youtube";
-    if (/\b(open|start|launch)\s+instagram\b/.test(normalized)) return "instagram-open";
-    if (/\b(open|start|launch)\s+facebook\b/.test(normalized)) return "facebook-open";
-    if (/\b(weather|temperature|forecast)\b/.test(normalized)) return "weather-show";
+    if (/\b(open|start|launch|khol|kholo)\s+instagram\b/.test(normalized)) return "instagram-open";
+    if (/\b(open|start|launch|khol|kholo)\s+facebook\b/.test(normalized)) return "facebook-open";
+    if (/\b(weather|temperature|forecast|mausam)\b/.test(normalized) || /मौसम|तापमान/.test(normalized)) return "weather-show";
 
     if (hasYoutubeVideoIntent(normalized)) return "youtube-search";
     if (/\byoutube\b/.test(normalized) && /\b(video|videos)\b/.test(normalized)) return "youtube-search";
-    if (/\b(google|search google|google search|search for)\b/.test(normalized)) return "google-search";
+    if (/\b(google|search google|google search|search for|search karo|dhundo)\b/.test(normalized) || /गूगल|सर्च|ढूंढ/.test(normalized)) return "google-search";
 
     return null;
 };
@@ -169,8 +172,9 @@ const cleanMusicQuery = (text = "", assistantName = "") => {
 
     return query
         .replace(/\b(on|in)\s+youtube\s+music\b/gi, "")
-        .replace(/\b(play|plau)\b/gi, "")
-        .replace(/\bsong\b/gi, "")
+        .replace(/\b(play|plau|chalao|lagao)\b/gi, "")
+        .replace(/\b(song|gaana|gana)\b/gi, "")
+        .replace(/गाना|संगीत|चलाओ|लगाओ/gi, "")
         .trim();
 };
 
@@ -186,6 +190,29 @@ const cleanYoutubeQuery = (text = "", assistantName = "") =>
 
 const formatTarget = (text = "", fallback = "that") =>
     String(text).trim() || fallback;
+
+const getCommandResponse = (language, type, userInput = "") => {
+
+    if (MUSIC_TYPES.includes(type)) {
+        return getLocalizedText(language, "playMusic", formatTarget(userInput, "music"));
+    }
+
+    if (["youtube-search", "youtube-play"].includes(type)) {
+        return getLocalizedText(language, "playYoutube", formatTarget(userInput, "the first result"));
+    }
+
+    if (type === "google-search") {
+        return getLocalizedText(language, "searchGoogle", formatTarget(userInput));
+    }
+
+    if (type === "cancel-command") return getLocalizedText(language, "stopped");
+    if (type === "pause-media") return getLocalizedText(language, "paused");
+    if (type === "resume-media") return getLocalizedText(language, "resuming");
+    if (type === "next-media") return getLocalizedText(language, "next");
+    if (type === "end-conversation") return getLocalizedText(language, "conversationEnded");
+
+    return getLocalizedText(language, "done");
+};
 
 const runInBackground = (task, label = "background task") => {
 
@@ -237,7 +264,10 @@ export const updateAssistant = async (req, res) => {
 
     try {
 
-        const { assistantName, imageUrl } = req.body;
+        const { assistantName, assistantVoice = "auto", assistantVoiceName = "", imageUrl } = req.body;
+        const normalizedAssistantVoice = ["auto", "female", "male"].includes(assistantVoice)
+            ? assistantVoice
+            : "auto";
 
         let assistantImage;
 
@@ -257,7 +287,9 @@ export const updateAssistant = async (req, res) => {
 
             {
                 assistantName,
-                assistantImage
+                assistantImage,
+                assistantVoice: normalizedAssistantVoice,
+                assistantVoiceName: String(assistantVoiceName).trim()
             },
 
             {
@@ -288,13 +320,15 @@ export const askToAssistant = async (req, res) => {
 
     try {
 
-        const { command, history = [], systemPrompt = "", localIntent = null } = req.body;
+        const { command, history = [], systemPrompt = "", localIntent = null, language: requestLanguage = null } = req.body;
+        const commandLanguage = detectCommandLanguage(command, requestLanguage);
+        const responseLanguage = (payload) => withLanguage(payload, commandLanguage);
 
         if (!command) {
 
-            return res.status(400).json({
+            return res.status(400).json(responseLanguage({
                 response: "Command is required"
-            });
+            }));
         }
 
 
@@ -306,9 +340,9 @@ export const askToAssistant = async (req, res) => {
 
         if (!user) {
 
-            return res.status(404).json({
+            return res.status(404).json(responseLanguage({
                 response: "User not found"
-            });
+            }));
         }
 
 
@@ -333,13 +367,13 @@ export const askToAssistant = async (req, res) => {
 
         if (!commandWithoutWakeWord && normalizeCommand(command) === normalizeCommand(assistantName)) {
 
-            return res.status(200).json({
+            return res.status(200).json(responseLanguage({
 
                 type: "general",
                 userInput: "",
                 response:
                     `Yes, ${userName}?`
-            });
+            }));
         }
 
 
@@ -357,7 +391,12 @@ export const askToAssistant = async (req, res) => {
             aiResult = {
                 type: localIntent.type,
                 userInput: localIntent.userInput || commandForAssistant,
-                response: localIntent.response || "Done."
+                response: getCommandResponse(
+                    commandLanguage,
+                    localIntent.type,
+                    localIntent.userInput || commandForAssistant
+                ),
+                language: commandLanguage
             };
 
         } else {
@@ -367,7 +406,11 @@ export const askToAssistant = async (req, res) => {
                 assistantName,
                 userName,
                 history,
-                systemPrompt
+                [
+                    systemPrompt,
+                    getLanguageInstruction(commandLanguage)
+                ].filter(Boolean).join("\n"),
+                commandLanguage
             );
 
             console.log("RAW AI RESPONSE:", result);
@@ -388,15 +431,17 @@ export const askToAssistant = async (req, res) => {
                     parseError
                 );
 
-                return res.status(200).json({
+                return res.status(200).json(responseLanguage({
 
                     type: "general",
                     userInput: commandForAssistant,
                     response:
-                        "Sorry, I couldn't understand that properly."
-                });
+                        getLocalizedText(commandLanguage, "noUnderstand")
+                }));
             }
         }
+
+        aiResult.language = commandLanguage;
 
 
         const obviousType = inferObviousCommandType(commandForAssistant);
@@ -415,7 +460,7 @@ export const askToAssistant = async (req, res) => {
                 ...aiResult,
                 type: "youtube-search",
                 userInput: youtubeQuery,
-                response: `Playing ${formatTarget(youtubeQuery, "the first result")} on YouTube.`
+                response: getLocalizedText(commandLanguage, "playYoutube", formatTarget(youtubeQuery, "the first result"))
             };
 
         } else if (
@@ -431,7 +476,7 @@ export const askToAssistant = async (req, res) => {
                 ...aiResult,
                 type: "play-music",
                 userInput: inferredMusicQuery,
-                response: `Playing ${formatTarget(inferredMusicQuery)} on YouTube Music.`
+                response: getLocalizedText(commandLanguage, "playMusic", formatTarget(inferredMusicQuery))
             };
 
         } else if (
@@ -443,7 +488,7 @@ export const askToAssistant = async (req, res) => {
                 ...aiResult,
                 type: obviousType,
                 userInput: commandForAssistant,
-                response: "Done."
+                response: getLocalizedText(commandLanguage, "done")
             };
 
         } else if (aiFailed) {
@@ -451,7 +496,7 @@ export const askToAssistant = async (req, res) => {
             aiResult = {
                 ...aiResult,
                 userInput: commandForAssistant,
-                response: "I heard you. Please try that again."
+                response: getLocalizedText(commandLanguage, "unclear")
             };
 
         } else if (MUSIC_TYPES.includes(aiResult.type) && !hasMusicIntent(commandForAssistant)) {
@@ -462,7 +507,7 @@ export const askToAssistant = async (req, res) => {
                 userInput: commandForAssistant,
                 response: obviousType
                     ? aiResult.response
-                    : "I heard you. How can I help with that?"
+                    : getLocalizedText(commandLanguage, "unclear")
             };
 
         } else if (
@@ -486,7 +531,7 @@ export const askToAssistant = async (req, res) => {
                 cleanMusicQuery(commandForAssistant, assistantName);
 
             aiResult.response =
-                `Playing ${formatTarget(aiResult.userInput)} on YouTube Music.`;
+                getLocalizedText(commandLanguage, "playMusic", formatTarget(aiResult.userInput));
         }
 
         if (["youtube-search", "youtube-play"].includes(type)) {
@@ -497,7 +542,7 @@ export const askToAssistant = async (req, res) => {
                 commandForAssistant;
 
             aiResult.response =
-                `Playing ${formatTarget(aiResult.userInput, "the first result")} on YouTube.`;
+                getLocalizedText(commandLanguage, "playYoutube", formatTarget(aiResult.userInput, "the first result"));
         }
 
 
@@ -514,127 +559,127 @@ export const askToAssistant = async (req, res) => {
 
             case "get-date":
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        `Current date is ${moment().format("YYYY-MM-DD")}`
-                });
+                        getLocalizedText(commandLanguage, "currentDate", moment().format("YYYY-MM-DD"))
+                }));
 
 
             case "get-time":
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        `Current time is ${moment().format("hh:mm A")}`
-                });
+                        getLocalizedText(commandLanguage, "currentTime", moment().format("hh:mm A"))
+                }));
 
 
             case "get-day":
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        `Today is ${moment().format("dddd")}`
-                });
+                        getLocalizedText(commandLanguage, "currentDay", moment().format("dddd"))
+                }));
 
 
             case "get-month":
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        `Current month is ${moment().format("MMMM")}`
-                });
+                        getLocalizedText(commandLanguage, "currentMonth", moment().format("MMMM"))
+                }));
 
 
             case "cancel-command":
 
                 await stopMusic();
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        "Stopped."
-                });
+                        getLocalizedText(commandLanguage, "stopped")
+                }));
 
 
             case "end-conversation":
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        "Conversation ended. Say my name when you need me again."
-                });
+                        getLocalizedText(commandLanguage, "conversationEnded")
+                }));
 
 
             case "pause-media":
 
                 await pauseMusic();
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        "Paused."
-                });
+                        getLocalizedText(commandLanguage, "paused")
+                }));
 
 
             case "resume-media":
 
                 await resumeMusic();
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        "Resuming."
-                });
+                        getLocalizedText(commandLanguage, "resuming")
+                }));
 
 
             case "next-media":
 
                 await nextMusic();
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
                     userInput: aiResult.userInput,
 
                     response:
-                        "Playing the next song."
-                });
+                        getLocalizedText(commandLanguage, "next")
+                }));
                 
 
             // ====================================
@@ -695,7 +740,7 @@ export const askToAssistant = async (req, res) => {
                     );
                 }
 
-                return res.json({
+                return res.json(responseLanguage({
 
                     type,
 
@@ -704,7 +749,7 @@ export const askToAssistant = async (req, res) => {
 
                     response:
                         aiResult.response
-                });
+                }));
 
 
             // ====================================
@@ -713,13 +758,13 @@ export const askToAssistant = async (req, res) => {
 
             default:
 
-                return res.status(200).json({
+                return res.status(200).json(responseLanguage({
 
                     type: "general",
                     userInput: aiResult.userInput || command,
                     response:
-                        "I didn't understand that command."
-                });
+                        getLocalizedText(commandLanguage, "noUnderstand")
+                }));
         }
 
     } catch (error) {

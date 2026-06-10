@@ -1,0 +1,14 @@
+Primary source: GBPIET_Notes_Final_Project_Report.docx, supplied by user.
+Reference source: EDUCONNECT newwwwww_progressPPT.pdf, supplied by user. Treated as prior-progress material only because the final report uses the title GBPIET Notes.
+
+Core facts used:
+- Project title: GBPIET Notes: College Community Web Application.
+- Team: Saket Singh, Vaibhav Rawat, Yash Bhatt, Akshay Tomar.
+- Guide: Dr. Papendra Kumar / Papendra Kumar Sir in provided sources.
+- Domain: college academic resource sharing, Q&A, community interaction, contribution recognition, AI study assistance, moderation.
+- Stack: React.js, Vite, Tailwind CSS, React Router, Axios, Lucide icons, Node.js, Express.js, MongoDB, Mongoose, JWT, Google OAuth, Supabase Storage, Gemini API.
+- Major modules: authentication, notes, Q&A, community posts, profile/settings, leaderboard/activity dashboard, AI chatbot, reports/moderation.
+- Testing: authentication, notes, Q&A, community, profile, settings, leaderboard, AI chatbot, moderation, responsive UI all marked Passed in the report table.
+
+Identity assets:
+- No official GBPIET logo file was supplied. The deck uses text identity rather than a recreated logo.
