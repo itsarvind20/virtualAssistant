@@ -265,6 +265,14 @@ export const updateAssistant = async (req, res) => {
     try {
 
         const { assistantName, assistantVoice = "auto", assistantVoiceName = "", imageUrl } = req.body;
+        const trimmedAssistantName = String(assistantName || "").trim();
+        const trimmedImageUrl = String(imageUrl || "").trim();
+
+        if (!trimmedAssistantName) {
+            return res.status(400).json({
+                message: "Assistant name is required"
+            });
+        }
         const normalizedAssistantVoice = ["auto", "female", "male"].includes(assistantVoice)
             ? assistantVoice
             : "auto";
@@ -278,7 +286,13 @@ export const updateAssistant = async (req, res) => {
 
         } else {
 
-            assistantImage = imageUrl;
+            assistantImage = trimmedImageUrl;
+        }
+
+        if (!assistantImage) {
+            return res.status(400).json({
+                message: "Please choose or upload an assistant image"
+            });
         }
 
         const user = await User.findByIdAndUpdate(
@@ -286,7 +300,7 @@ export const updateAssistant = async (req, res) => {
             req.userId,
 
             {
-                assistantName,
+                assistantName: trimmedAssistantName,
                 assistantImage,
                 assistantVoice: normalizedAssistantVoice,
                 assistantVoiceName: String(assistantVoiceName).trim()

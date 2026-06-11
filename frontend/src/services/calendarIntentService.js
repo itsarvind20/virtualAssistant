@@ -229,11 +229,19 @@ export const isCalendarCommand = (text = "") => {
 export const isConfirmationResponse = (text = "") => {
   const command = cleanText(text);
 
-  if (/^(yes|yeah|yep|confirm|do it|create it|add it|delete it|update it|sure|ok|okay)\b/.test(command)) {
+  if (
+    /^(yes|yeah|yep|confirm|do it|create it|add it|delete it|update it|sure|ok|okay|please do|go ahead)\b/.test(command) ||
+    /\b(yes delete|delete it|confirm delete|yes update|yes create|yes add)\b/.test(command) ||
+    /\b(haan|han|ha|theek hai|kar do|delete kar do|confirm karo)\b/.test(command)
+  ) {
     return "confirm";
   }
 
-  if (/^(no|nope|cancel|dont|do not|stop|never mind|nevermind)\b/.test(command)) {
+  if (
+    /^(no|nope|cancel|dont|do not|stop|never mind|nevermind|not now|leave it)\b/.test(command) ||
+    /\b(no cancel|cancel it|do not delete|dont delete|keep it)\b/.test(command) ||
+    /\b(nahi|nahin|mat karo|cancel karo|delete mat karo)\b/.test(command)
+  ) {
     return "cancel";
   }
 
@@ -315,7 +323,7 @@ export const parseCalendarIntent = (text = "") => {
         recurrence: ["RRULE:FREQ=YEARLY"],
         reminders: [24 * 60],
       },
-      needsConfirmation: true,
+      needsConfirmation: false,
     };
   }
 

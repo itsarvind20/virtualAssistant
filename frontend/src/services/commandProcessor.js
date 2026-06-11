@@ -317,7 +317,7 @@ export const prepareCalendarAction = async ({ intent, serverUrl, signal }) => {
         intent: preparedIntent,
         message:
           intent.type === CALENDAR_INTENTS.DELETE_EVENT
-            ? `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I delete it?`
+            ? `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I delete it? Say yes to delete or no to cancel.`
             : `I found ${targetEvent.summary || "this event"} at ${formatEventTime(targetEvent)}. Should I update it?`,
       },
     };
@@ -359,7 +359,7 @@ export const prepareCalendarAction = async ({ intent, serverUrl, signal }) => {
             eventCount: events.length,
           },
         },
-        message: `I found ${events.length} event${events.length === 1 ? "" : "s"} for ${rangeLabel(intent.payload)}. Should I delete all of them?`,
+        message: `I found ${events.length} event${events.length === 1 ? "" : "s"} for ${rangeLabel(intent.payload)}. Should I delete all of them? Say yes to delete or no to cancel.`,
       },
     };
   }

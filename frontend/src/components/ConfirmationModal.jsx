@@ -9,6 +9,7 @@ function ConfirmationModal({ open, message, onConfirm, onCancel }) {
       <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#07111f] p-5 text-white shadow-2xl">
         <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/60">confirmation</p>
         <h2 className="mt-3 text-xl font-semibold">{message}</h2>
+        <p className="mt-3 text-sm text-white/60">You can click a button or say "yes" / "no" by voice.</p>
         <div className="mt-5 flex gap-3">
           <button
             className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-cyan-300 px-4 text-sm font-semibold text-black transition hover:bg-cyan-200"

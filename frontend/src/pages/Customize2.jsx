@@ -47,6 +47,16 @@ function Customize2() {
   const handleUpdateAssistant = async () => {
     if (!assistantName.trim()) return;
 
+    if (selectedImage === "input" && !backendImage && !userData?.assistantImage) {
+      setErrorMessage("Please go back and choose an image file again.");
+      return;
+    }
+
+    if (!selectedImage && !userData?.assistantImage) {
+      setErrorMessage("Please choose an assistant image first.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
 
@@ -59,7 +69,12 @@ function Customize2() {
       if (backendImage) {
         formData.append("assistantImage", backendImage);
       } else {
-        formData.append("imageUrl", selectedImage === "input" ? userData?.assistantImage || "" : selectedImage || userData?.assistantImage || "");
+        formData.append(
+          "imageUrl",
+          selectedImage === "input"
+            ? userData?.assistantImage || ""
+            : selectedImage || userData?.assistantImage || ""
+        );
       }
 
       const result = await axios.post(`${serverUrl}/api/user/update`, formData, {

@@ -28,6 +28,7 @@ function Customize() {
 
     if (!file) return;
 
+    setSelectedImage("input");
     setBackendImage(file);
     setFrontendImage(URL.createObjectURL(file));
   };
@@ -80,7 +81,6 @@ function Customize() {
             }`}
             onClick={() => {
               inputImage.current?.click();
-              setSelectedImage("input");
             }}
             type="button"
           >

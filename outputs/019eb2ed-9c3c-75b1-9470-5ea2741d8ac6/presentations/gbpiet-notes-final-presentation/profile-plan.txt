@@ -1,8 +1,0 @@
-task mode: create
-primary deck-profile: engineering-platform
-secondary profile gates: product-platform, academic project viva
-required proof objects: problem-to-solution bridge, architecture map, workflow map, module matrix, data/storage model, testing table, future roadmap
-source/asset requirements: use only facts from the final DOCX report and supplied progress PDF; no invented adoption metrics
-brand authenticity constraints: no unofficial GBPIET logo recreation; use text identity and verified project title only
-profile-specific QA gates: technical labels must be accurate, diagrams must simplify without distorting the implementation, every slide must answer a likely evaluator question
-known missing inputs: no live product screenshots or official college logo supplied
